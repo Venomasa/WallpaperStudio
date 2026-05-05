@@ -1,0 +1,31 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('wp', {
+  getWallpapers: () => ipcRenderer.invoke('get-wallpapers'),
+  addWallpaper: (path) => ipcRenderer.invoke('add-wallpaper', path),
+  openFile: () => ipcRenderer.invoke('open-file'),
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  chooseStorageDir: () => ipcRenderer.invoke('choose-storage-dir'),
+  setWallpaper: (path) => ipcRenderer.invoke('set-wallpaper', path),
+  toggleFavorite: (id) => ipcRenderer.invoke('toggle-favorite', id),
+  startSlideshow: (interval) => ipcRenderer.invoke('start-slideshow', interval),
+  stopSlideshow: () => ipcRenderer.invoke('stop-slideshow'),
+  onRefresh: (cb) => ipcRenderer.on('refresh-gallery', cb),
+  openSlideshowConfig: () => ipcRenderer.invoke('open-slideshow-config'),
+  getAlbums: () => ipcRenderer.invoke('get-albums'),
+  getCurrentAlbumId: () => ipcRenderer.invoke('get-current-album'),
+  setCurrentAlbum: (id) => ipcRenderer.invoke('set-current-album', id),
+  addAlbum: (name, folder) => ipcRenderer.invoke('add-album', name, folder),
+  selectAlbumFolder: () => ipcRenderer.invoke('select-album-folder'),
+  getAlbumName: (folderPath) => ipcRenderer.invoke('get-album-name', folderPath),
+  selectFolder: () => ipcRenderer.invoke('select-folder'),
+  removeAlbum: (id) => ipcRenderer.invoke('remove-album', id),
+  deleteImage: (path) => ipcRenderer.invoke('delete-image', path),
+  getImageMetadata: (path) => ipcRenderer.invoke('get-image-metadata', path),
+  getAllWallpapers: () => ipcRenderer.invoke('get-all-wallpapers'),
+  getSpotlightImages: () => ipcRenderer.invoke('get-spotlight-images'),
+  copyToAlbum: (imagePath, albumId) => ipcRenderer.invoke('copy-to-album', imagePath, albumId),
+  copySpotlightToAlbum: (imagePath, albumId) => ipcRenderer.invoke('copy-spotlight-to-album', imagePath, albumId),
+  // NEW: download image from URL and save to album folder
+  downloadImageUrl: (url, filename, albumId) => ipcRenderer.invoke('download-image-url', url, filename, albumId),
+});

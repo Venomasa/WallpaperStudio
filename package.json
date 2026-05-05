@@ -1,0 +1,14 @@
+{
+  "name": "wallpaper-desktop",
+  "version": "0.1.0",
+  "description": "Modern desktop wallpaper manager (offline-first) with optional online fetch",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^27.0.0",
+    "wallpaper": "^3.0.0",
+    "node-fetch": "^2.6.7"
+  }
+}
