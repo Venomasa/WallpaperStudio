@@ -1,14 +1,52 @@
 {
-  "name": "wallpaper-desktop",
-  "version": "0.1.0",
+  "name": "wallpaper-studio",
+  "productName": "Wallpaper Studio",
+  "version": "0.2.0",
   "description": "Modern desktop wallpaper manager (offline-first) with optional online fetch",
+  "author": "Wallpaper Studio",
   "main": "src/main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "build:portable": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.wallpaperstudio.app",
+    "productName": "Wallpaper Studio",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        },
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "shortcutName": "Wallpaper Studio",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
   },
   "dependencies": {
-    "electron": "^27.0.0",
     "wallpaper": "^3.0.0",
     "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^24.13.3"
   }
 }

@@ -37,14 +37,23 @@ const D  = {};   // filled in DOMContentLoaded
 // ─────────────────────────────────────────────────────────────────────────────
 // Lazy image loading — IntersectionObserver
 // ─────────────────────────────────────────────────────────────────────────────
+function applyLazySrc(img) {
+  if (!img.dataset.src) return;
+  const src = img.dataset.src;
+  img.removeAttribute('data-src');
+
+  img.onload  = () => { img.classList.add('loaded'); img.onload = null; img.onerror = null; };
+  img.onerror = () => { img.classList.add('loaded'); img.onerror = null; }; // hide shimmer even on error
+  img.src = src;
+}
+
 const imgObs = new IntersectionObserver(entries => {
   entries.forEach(entry => {
     if (!entry.isIntersecting) return;
-    const img = entry.target;
-    if (img.dataset.src) { img.src = img.dataset.src; img.removeAttribute('data-src'); }
-    imgObs.unobserve(img);
+    applyLazySrc(entry.target);
+    imgObs.unobserve(entry.target);
   });
-}, { rootMargin: '500px 0px' });
+}, { rootMargin: '300px 0px' });
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Toast
@@ -64,6 +73,9 @@ function toast(msg, type) {
 // Lightbox
 // ─────────────────────────────────────────────────────────────────────────────
 function openLightbox(src, credit) {
+  D.lbImg.classList.remove('loaded');
+  D.lbImg.onload  = () => { D.lbImg.classList.add('loaded'); };
+  D.lbImg.onerror = () => { D.lbImg.classList.add('loaded'); };
   D.lbImg.src = src;
   D.lbCredit.textContent = credit || '';
   D.lbCredit.style.display = credit ? 'block' : 'none';
@@ -72,6 +84,9 @@ function openLightbox(src, credit) {
 function closeLightbox() {
   D.lightbox.classList.remove('on');
   D.lbImg.src = '';
+  D.lbImg.classList.remove('loaded');
+  D.lbImg.onload  = null;
+  D.lbImg.onerror = null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -287,9 +302,13 @@ async function renderGallery() {
     items.forEach(w => frag.appendChild(makeCard(w)));
   }
 
+  // Swap off-screen to avoid layout thrashing during bulk DOM insert
+  D.gallery.style.visibility = 'hidden';
   D.gallery.innerHTML = '';
   D.gallery.appendChild(frag);
   D.gallery.querySelectorAll('img[data-src]').forEach(img => imgObs.observe(img));
+  // Re-enable visibility in next frame after layout is done
+  requestAnimationFrame(() => { D.gallery.style.visibility = ''; });
 }
 
 function makeCard(w) {

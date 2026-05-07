@@ -159,11 +159,25 @@ button:active { transform: scale(.97); }
 .card:hover { border-color: var(--c-bord2); box-shadow: var(--shadow); transform: translateY(-3px); }
 .card.removing { opacity: 0; transform: scale(.92); transition: all .28s ease; }
 
+/* Shimmer keyframe for loading state */
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position:  400px 0; }
+}
+
 /* Thumbnail — cropped */
 .thumb {
   width: 100%; height: 138px; object-fit: cover;
-  background: var(--c-bg3); cursor: zoom-in;
-  transition: transform .22s ease;
+  cursor: zoom-in;
+  transition: transform .22s ease, opacity .18s ease;
+  background: var(--c-bg3);
+  background-image: linear-gradient(90deg, var(--c-bg3) 25%, var(--c-bg2) 50%, var(--c-bg3) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.thumb.loaded {
+  background-image: none;
+  animation: none;
 }
 .card:hover .thumb { transform: scale(1.03); }
 
@@ -248,7 +262,14 @@ button:active { transform: scale(.97); }
   max-width: 90vw; max-height: 86vh;
   object-fit: contain; border-radius: var(--r);
   box-shadow: 0 20px 80px rgba(0,0,0,.9);
+  min-width: 200px; min-height: 120px;
+  background: var(--c-bg3);
+  background-image: linear-gradient(90deg, var(--c-bg3) 25%, var(--c-bg2) 50%, var(--c-bg3) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  transition: opacity .2s ease;
 }
+#lb-img.loaded { background-image: none; animation: none; }
 #lb-credit {
   color: rgba(255,255,255,.55); font-size: 12px;
   display: none;
@@ -353,7 +374,15 @@ button:active { transform: scale(.97); }
 }
 .disc-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
 .disc-card:hover .disc-over { opacity: 1; }
-.disc-thumb { width: 100%; height: 100%; object-fit: cover; background: var(--c-bg3); transition: transform .3s ease; }
+.disc-thumb {
+  width: 100%; height: 100%; object-fit: cover;
+  transition: transform .3s ease, opacity .18s ease;
+  background: var(--c-bg3);
+  background-image: linear-gradient(90deg, var(--c-bg3) 25%, var(--c-bg2) 50%, var(--c-bg3) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.disc-thumb.loaded { background-image: none; animation: none; }
 .disc-card:hover .disc-thumb { transform: scale(1.04); }
 .disc-over {
   position: absolute; inset: 0;
