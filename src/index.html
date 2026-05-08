@@ -5,7 +5,7 @@
 <title>Wallpaper Studio</title>
 <style>
 /* ═══════════════════════════════════════════════════════════
-   DESIGN TOKENS — one place to change everything
+   DESIGN TOKENS
 ═══════════════════════════════════════════════════════════ */
 :root {
   --c-bg0:   #0d0d10;
@@ -26,6 +26,23 @@
   --trans:   0.18s ease;
   --shadow:  0 4px 16px rgba(0,0,0,.45);
   --shadow-lg:0 12px 40px rgba(0,0,0,.65);
+  --thumb-min: 210px;
+  --thumb-h:   138px;
+}
+
+/* Light mode */
+[data-theme="light"] {
+  --c-bg0:   #f5f5f7;
+  --c-bg1:   #ffffff;
+  --c-bg2:   #ebebef;
+  --c-bg3:   #dddde5;
+  --c-border:#d0d0dc;
+  --c-bord2: #b8b8c8;
+  --c-txt:   #111118;
+  --c-txt2:  #44445a;
+  --c-txt3:  #808090;
+  --shadow:  0 4px 16px rgba(0,0,0,.12);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.20);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -39,9 +56,10 @@ body {
   font-size: 13px;
 }
 img { display: block; }
+a { color: inherit; }
 
 /* ═══════════════════════════════════════════════════════════
-   UNIFIED BUTTON SYSTEM
+   BUTTON SYSTEM
 ═══════════════════════════════════════════════════════════ */
 button {
   display: inline-flex; align-items: center; gap: 6px;
@@ -69,15 +87,27 @@ button:active { transform: scale(.97); }
   background: rgba(20,20,24,.96); backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--c-border);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 18px; gap: 12px;
+  padding: 0 16px; gap: 12px;
 }
-#topbar .logo {
-  font-size: 16px; font-weight: 700; letter-spacing: -.3px;
+[data-theme="light"] #topbar { background: rgba(255,255,255,.96); }
+
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.logo-img {
+  width: 28px; height: 28px; border-radius: 8px;
+  object-fit: cover; flex-shrink: 0;
+}
+.logo-text {
+  font-size: 15px; font-weight: 700; letter-spacing: -.3px;
   background: linear-gradient(135deg,#6366f1,#a78bfa);
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
-#topbar .tb-actions { display: flex; gap: 8px; }
+#topbar .tb-actions { display: flex; gap: 8px; align-items: center; }
 #topbar .tb-actions button { padding: 7px 12px; font-size: 12px; }
+#btn-settings {
+  background: transparent; border-color: transparent;
+  color: var(--c-txt2); padding: 7px 10px; font-size: 16px;
+}
+#btn-settings:hover { background: var(--c-bg3); color: var(--c-txt); }
 
 #sidebar {
   position: fixed; left: 0; top: 54px; bottom: 0; width: 248px; z-index: 100;
@@ -93,7 +123,6 @@ button:active { transform: scale(.97); }
 #folders-list { flex: 1; overflow-y: auto; padding: 0 10px 10px; }
 #btn-add-folder { margin: 8px; width: calc(100% - 16px); justify-content: center; }
 
-/* Nav items */
 .nav-item {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 10px; border-radius: var(--r-sm);
@@ -105,7 +134,6 @@ button:active { transform: scale(.97); }
 .nav-item.active { background: var(--c-acc); color: #fff; font-weight: 600; }
 .nav-item .nav-icon { font-size: 15px; flex-shrink: 0; }
 
-/* Folder items */
 .folder-item { position: relative; }
 .folder-name  { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .folder-del   {
@@ -117,7 +145,6 @@ button:active { transform: scale(.97); }
 .folder-del:hover { background: rgba(239,68,68,.15); color: var(--c-red) !important; }
 .nav-item.active .folder-del { color: rgba(255,255,255,.5); }
 
-/* Main area */
 #main {
   margin-left: 248px; margin-top: 54px;
   padding: 22px; min-height: calc(100vh - 54px);
@@ -141,7 +168,7 @@ button:active { transform: scale(.97); }
 #gallery-wrap { display: none; }
 #gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(var(--thumb-min), 1fr));
   gap: 14px;
 }
 .gal-empty {
@@ -149,25 +176,22 @@ button:active { transform: scale(.97); }
   color: var(--c-txt3); line-height: 2; font-size: 14px;
 }
 
-/* Card */
 .card {
   background: var(--c-bg2); border: 1px solid var(--c-border);
   border-radius: var(--r); overflow: hidden;
   transition: border-color var(--trans), box-shadow var(--trans), transform var(--trans);
-  contain: layout style paint; /* perf */
+  contain: layout style paint;
 }
 .card:hover { border-color: var(--c-bord2); box-shadow: var(--shadow); transform: translateY(-3px); }
 .card.removing { opacity: 0; transform: scale(.92); transition: all .28s ease; }
 
-/* Shimmer keyframe for loading state */
 @keyframes shimmer {
   0%   { background-position: -400px 0; }
   100% { background-position:  400px 0; }
 }
 
-/* Thumbnail — cropped */
 .thumb {
-  width: 100%; height: 138px; object-fit: cover;
+  width: 100%; height: var(--thumb-h); object-fit: cover;
   cursor: zoom-in;
   transition: transform .22s ease, opacity .18s ease;
   background: var(--c-bg3);
@@ -175,16 +199,12 @@ button:active { transform: scale(.97); }
   background-size: 800px 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
-.thumb.loaded {
-  background-image: none;
-  animation: none;
-}
+.thumb.loaded { background-image: none; animation: none; }
 .card:hover .thumb { transform: scale(1.03); }
 
-/* Card action bar */
 .card-bar {
   display: flex; align-items: center; gap: 6px;
-  padding: 8px 8px 8px;
+  padding: 8px;
 }
 .btn-icon {
   background: transparent; border: 1px solid transparent;
@@ -195,12 +215,12 @@ button:active { transform: scale(.97); }
 .btn-icon.fav-on { color: #f59e0b; }
 .btn-set {
   flex: 1; justify-content: center; padding: 6px 8px;
-  font-size: 12px;
+  font-size: 12px; font-weight: 600;
 }
 .btn-more { margin-left: auto; }
 
 /* ═══════════════════════════════════════════════════════════
-   SHARED CONTEXT MENU
+   CONTEXT MENU
 ═══════════════════════════════════════════════════════════ */
 #ctx-menu {
   display: none; position: fixed; z-index: 9999;
@@ -267,7 +287,6 @@ button:active { transform: scale(.97); }
   background-image: linear-gradient(90deg, var(--c-bg3) 25%, var(--c-bg2) 50%, var(--c-bg3) 75%);
   background-size: 800px 100%;
   animation: shimmer 1.4s ease-in-out infinite;
-  transition: opacity .2s ease;
 }
 #lb-img.loaded { background-image: none; animation: none; }
 #lb-credit {
@@ -283,7 +302,7 @@ button:active { transform: scale(.97); }
 #lb-close:hover { background: rgba(255,255,255,.22); }
 
 /* ═══════════════════════════════════════════════════════════
-   DETAILS PANEL (slide in from right)
+   DETAILS PANEL
 ═══════════════════════════════════════════════════════════ */
 #det-panel {
   position: fixed; top: 54px; right: 0; bottom: 0;
@@ -315,25 +334,22 @@ button:active { transform: scale(.97); }
 ═══════════════════════════════════════════════════════════ */
 #discover-wrap { display: none; }
 
-/* Setup screen */
 #disc-setup {
   max-width: 440px; margin: 60px auto; text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 14px;
 }
-#disc-setup .ds-icon { font-size: 52px; opacity: .5; }
+#disc-setup .ds-icon { font-size: 48px; opacity: .5; }
 #disc-setup h2 { font-size: 20px; font-weight: 600; }
 #disc-setup p  { color: var(--c-txt3); line-height: 1.6; }
-.disc-key-row  { display: flex; gap: 8px; width: 100%; }
-.disc-key-row input {
-  flex: 1; background: var(--c-bg2); border: 1px solid var(--c-border);
-  border-radius: var(--r-sm); padding: 9px 13px;
-  color: var(--c-txt); font: inherit; outline: none;
-}
-.disc-key-row input:focus { border-color: var(--c-acc); }
-.disc-help { font-size: 12px; color: var(--c-txt3); }
-.disc-help strong { color: var(--c-txt2); }
 
-/* Discover main */
+/* Discover note when no key */
+.disc-no-key {
+  background: var(--c-bg2); border: 1px solid var(--c-border);
+  border-radius: var(--r); padding: 16px 20px;
+  color: var(--c-txt3); font-size: 13px; line-height: 1.6;
+}
+.disc-no-key strong { color: var(--c-txt2); }
+
 #disc-main { display: none; }
 .disc-toolbar {
   display: flex; align-items: center; gap: 10px;
@@ -347,7 +363,6 @@ button:active { transform: scale(.97); }
 }
 .disc-search input:focus { border-color: var(--c-acc); }
 
-/* Chips */
 #disc-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
 .chip {
   background: var(--c-bg2); border: 1px solid var(--c-border);
@@ -358,7 +373,6 @@ button:active { transform: scale(.97); }
 .chip:hover { border-color: var(--c-acc); color: var(--c-txt); }
 .chip.active { background: var(--c-acc); border-color: var(--c-acc); color: #fff; font-weight: 600; }
 
-/* Grid */
 #disc-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
@@ -376,7 +390,7 @@ button:active { transform: scale(.97); }
 .disc-card:hover .disc-over { opacity: 1; }
 .disc-thumb {
   width: 100%; height: 100%; object-fit: cover;
-  transition: transform .3s ease, opacity .18s ease;
+  transition: transform .3s ease;
   background: var(--c-bg3);
   background-image: linear-gradient(90deg, var(--c-bg3) 25%, var(--c-bg2) 50%, var(--c-bg3) 75%);
   background-size: 800px 100%;
@@ -390,7 +404,7 @@ button:active { transform: scale(.97); }
   opacity: 0; transition: opacity .22s ease;
   display: flex; flex-direction: column; justify-content: flex-end; padding: 10px;
 }
-.disc-credit { font-size: 11px; color: rgba(255,255,255,.65); margin-bottom: 7px; }
+.disc-credit { font-size: 11px; color: rgba(255,255,255,.75); margin-bottom: 7px; line-height: 1.4; }
 .disc-save {
   background: var(--c-acc); border: none; border-radius: var(--r-sm);
   color: #fff; padding: 6px 12px; font-size: 12px; font-weight: 600;
@@ -406,7 +420,6 @@ button:active { transform: scale(.97); }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 .disc-loading { animation: pulse 1.4s ease-in-out infinite; }
 
-/* Load More */
 #disc-more {
   display: none; margin: 0 auto 24px;
   justify-content: center; padding: 10px 28px;
@@ -437,22 +450,26 @@ button:active { transform: scale(.97); }
 </head>
 <body>
 
-<!-- ════════════════════ TOP BAR ════════════════════ -->
+<!-- TOP BAR -->
 <header id="topbar">
-  <div class="logo">Wallpaper Studio</div>
+  <div class="topbar-left">
+    <img class="logo-img" src="../icon.png" alt="Wallpaper Studio" onerror="this.style.display='none'"/>
+    <span class="logo-text">Wallpaper Studio</span>
+  </div>
   <div class="tb-actions">
     <button id="btn-add-local">+ Add Image</button>
-    <button id="btn-slideshow">▶ Slideshow</button>
+    <button id="btn-slideshow" style="display:none">&#9654; Slideshow</button>
+    <button id="btn-settings" title="Settings">&#9881;</button>
   </div>
 </header>
 
-<!-- ════════════════════ SIDEBAR ════════════════════ -->
+<!-- SIDEBAR -->
 <aside id="sidebar">
   <div class="sb-section">
     <div class="sb-label">Collections</div>
-    <div id="nav-spot"  class="nav-item"><span class="nav-icon">🌟</span>Spotlight</div>
-    <div id="nav-fav"   class="nav-item"><span class="nav-icon">⭐</span>Favourites</div>
-    <div id="nav-disc"  class="nav-item"><span class="nav-icon">🌐</span>Discover</div>
+    <div id="nav-spot"  class="nav-item"><span class="nav-icon">&#10026;</span>Spotlight</div>
+    <div id="nav-fav"   class="nav-item"><span class="nav-icon">&#11088;</span>Favourites</div>
+    <div id="nav-disc"  class="nav-item"><span class="nav-icon">&#127758;</span>Discover</div>
   </div>
   <div class="sb-divider"></div>
   <div class="sb-label" style="padding-left:18px">Folders</div>
@@ -460,67 +477,61 @@ button:active { transform: scale(.97); }
   <button id="btn-add-folder" class="btn-primary">+ Add Folder</button>
 </aside>
 
-<!-- ════════════════════ MAIN ════════════════════ -->
+<!-- MAIN -->
 <main id="main">
 
-  <!-- Empty state -->
   <div id="empty-state">
-    <div class="es-icon">📂</div>
+    <div class="es-icon">&#128194;</div>
     <h2>No Folders Yet</h2>
     <p>Add a folder to start organizing your wallpapers, or browse Discover.</p>
     <button id="empty-add-folder" class="btn-primary">+ Add Your First Folder</button>
   </div>
 
-  <!-- Local gallery -->
   <div id="gallery-wrap">
     <div id="gallery"></div>
   </div>
 
-  <!-- Discover -->
   <div id="discover-wrap">
 
-    <!-- Step 1 — API key -->
+    <!-- No key state -->
     <div id="disc-setup">
-      <div class="ds-icon">🌐</div>
+      <div class="ds-icon">&#127758;</div>
       <h2>Discover Wallpapers</h2>
-      <p>Connect to Unsplash for free access to millions of high-quality wallpapers.</p>
-      <div class="disc-key-row">
-        <input id="disc-key" type="text" placeholder="Paste Unsplash Access Key…" autocomplete="off"/>
-        <button id="disc-key-save" class="btn-primary">Connect</button>
+      <p>The Discover feature requires an Unsplash API key configured by the developer.<br/>Contact the app distributor for a build with Discover enabled.</p>
+      <div class="disc-no-key">
+        <strong>For developers:</strong> Set the <code>UNSPLASH_ACCESS_KEY</code> environment variable before building the app to embed your key.
       </div>
-      <p class="disc-help">Get a free key at <strong>unsplash.com/developers</strong> → New Application → copy the Access Key.</p>
     </div>
 
-    <!-- Step 2 — main UI -->
+    <!-- Main discover UI -->
     <div id="disc-main">
       <div class="disc-toolbar">
         <div class="disc-search">
-          <input id="disc-search-in" type="text" placeholder="Search wallpapers…"/>
-          <button id="disc-search-btn">🔍</button>
+          <input id="disc-search-in" type="text" placeholder="Search wallpapers..."/>
+          <button id="disc-search-btn">Search</button>
         </div>
-        <button id="disc-key-change" class="btn-ghost">⚙ API Key</button>
       </div>
       <div id="disc-chips"></div>
       <div id="disc-grid"></div>
-      <button id="disc-more" class="btn-ghost">Load more ↓</button>
+      <button id="disc-more" class="btn-ghost">Load more</button>
     </div>
 
-  </div><!-- /discover-wrap -->
+  </div>
 
 </main>
 
-<!-- ════════════════════ SHARED CONTEXT MENU ════════════════════ -->
+<!-- CONTEXT MENU -->
 <div id="ctx-menu">
-  <button id="ctx-copy">📋 Copy to folder</button>
+  <button id="ctx-copy">Copy to folder</button>
   <div id="ctx-sep" class="ctx-sep"></div>
-  <button id="ctx-unfav" style="display:none">☆ Remove from favourites</button>
+  <button id="ctx-unfav" style="display:none">Remove from favourites</button>
   <div class="ctx-sep"></div>
-  <button id="ctx-details">ℹ Details</button>
+  <button id="ctx-details">Image Details</button>
   <div class="ctx-sep"></div>
-  <button id="ctx-delete" class="btn-danger">🗑 Delete image</button>
+  <button id="ctx-delete" class="btn-danger">Delete image</button>
 </div>
 
-<!-- ════════════════════ ALBUM PICKER MODAL ════════════════════ -->
+<!-- ALBUM PICKER MODAL -->
 <div id="ap-modal" class="modal-back">
   <div class="modal-box">
     <h3>Copy to folder</h3>
@@ -532,32 +543,32 @@ button:active { transform: scale(.97); }
   </div>
 </div>
 
-<!-- ════════════════════ LIGHTBOX ════════════════════ -->
+<!-- LIGHTBOX -->
 <div id="lightbox">
-  <button id="lb-close">✕</button>
+  <button id="lb-close">&#x2715;</button>
   <img id="lb-img" src="" alt="Preview"/>
   <div id="lb-credit"></div>
 </div>
 
-<!-- ════════════════════ DETAILS PANEL ════════════════════ -->
+<!-- DETAILS PANEL -->
 <div id="det-panel">
   <div id="det-header">
     <h3>Image Details</h3>
-    <button id="det-close" class="btn-ghost">✕</button>
+    <button id="det-close" class="btn-ghost">&#x2715;</button>
   </div>
   <div id="det-img-wrap">
     <img id="det-img" src="" alt=""/>
   </div>
   <div class="det-meta">
-    <div class="det-row"><span class="det-label">Name</span><span id="det-name" class="det-val">—</span></div>
-    <div class="det-row"><span class="det-label">Dimensions</span><span id="det-dims" class="det-val">—</span></div>
-    <div class="det-row"><span class="det-label">File size</span><span id="det-size" class="det-val">—</span></div>
-    <div class="det-row"><span class="det-label">Date</span><span id="det-date" class="det-val">—</span></div>
-    <div class="det-row"><span class="det-label">Path</span><span id="det-path" class="det-val">—</span></div>
+    <div class="det-row"><span class="det-label">Name</span><span id="det-name" class="det-val">&#8212;</span></div>
+    <div class="det-row"><span class="det-label">Dimensions</span><span id="det-dims" class="det-val">&#8212;</span></div>
+    <div class="det-row"><span class="det-label">File size</span><span id="det-size" class="det-val">&#8212;</span></div>
+    <div class="det-row"><span class="det-label">Date</span><span id="det-date" class="det-val">&#8212;</span></div>
+    <div class="det-row"><span class="det-label">Path</span><span id="det-path" class="det-val">&#8212;</span></div>
   </div>
   <div class="det-actions">
     <button id="det-set"  class="btn-primary">Set wallpaper</button>
-    <button id="det-copy">Copy to…</button>
+    <button id="det-copy">Copy to...</button>
   </div>
 </div>
 

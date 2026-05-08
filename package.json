@@ -1,8 +1,8 @@
 {
   "name": "wallpaper-studio",
   "productName": "Wallpaper Studio",
-  "version": "0.2.0",
-  "description": "Modern desktop wallpaper manager (offline-first) with optional online fetch",
+  "version": "0.3.1",
+  "description": "Modern desktop wallpaper manager for Windows — manage local collections and discover photos from Unsplash",
   "author": "Wallpaper Studio",
   "main": "src/main.js",
   "scripts": {
@@ -18,9 +18,17 @@
     },
     "files": [
       "src/**",
-      "package.json"
+      "package.json",
+      "icon.png"
+    ],
+    "extraResources": [
+      {
+        "from": "icon.png",
+        "to": "icon.png"
+      }
     ],
     "win": {
+      "icon": "icon.png",
       "target": [
         {
           "target": "nsis",

@@ -1,28 +1,30 @@
-# 🖼️ Wallpaper Studio
+# Wallpaper Studio
 
-A modern, offline-first desktop wallpaper manager built with Electron.  
-Manage your local wallpaper collections and discover new ones from Unsplash — all from a clean, dark UI.
+A modern, offline-first desktop wallpaper manager for Windows, built with Electron.
+Manage local wallpaper collections and discover high-quality photos from Unsplash - from a clean, polished UI.
 
-![Version](https://img.shields.io/badge/version-0.2.0-blueviolet)
-![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
+![Version](https://img.shields.io/badge/version-0.3.1-blueviolet)
+![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)
 ![Electron](https://img.shields.io/badge/electron-27-47848f)
+![License](https://img.shields.io/badge/license-MIT-green)
 
 ---
 
-## ✨ Features
+## Features
 
-- 📁 **Multi-folder Albums** — Add any local folder as a wallpaper album
-- ⭐ **Favorites** — Star images to keep them in a quick-access collection
-- 🌟 **Spotlight** — Browse Windows Spotlight images automatically
-- 🔍 **Discover** — Fetch high-quality wallpapers from Unsplash (API key required)
-- 🖥️ **One-click Set** — Apply any wallpaper instantly as your desktop background
-- 🎞️ **Slideshow** — Auto-rotate wallpapers on a configurable schedule
-- 🗂️ **Details Panel** — View image metadata (dimensions, size, date)
-- 🌙 **Dark UI** — Easy on the eyes, always
+- **Multi-folder Albums** - Add any local folder as a wallpaper album
+- **Favorites** - Star images to keep them in a quick-access collection
+- **Spotlight** - Browse Windows Spotlight images automatically
+- **Discover** - Fetch high-quality wallpapers from Unsplash (API key required at build time)
+- **One-click Set** - Apply any wallpaper instantly as your desktop background (Windows 10 and 11)
+- **Slideshow** - Auto-rotate wallpapers on a configurable schedule
+- **Details Panel** - View image metadata (dimensions, size, date)
+- **Settings** - Hardware acceleration toggle, light/dark mode, accent color, thumbnail size
+- **Dark and Light UI** - Toggle via the Settings panel
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -33,12 +35,10 @@ Manage your local wallpaper collections and discover new ones from Unsplash — 
 
 #### Option 1: Standalone Exe (Recommended)
 
-Download the latest `.exe` installer from [Releases](https://github.com/Venomasa/WallpaperStudio/releases).  
-No additional software required — just download and run!
+Download the latest `.exe` installer from [Releases](https://github.com/Venomasa/WallpaperStudio/releases).
+No additional software required - just download and run.
 
 #### Option 2: Build from Source
-
-For developers or advanced users:
 
 ```bash
 git clone https://github.com/Venomasa/WallpaperStudio.git
@@ -47,55 +47,118 @@ npm install
 npm start
 ```
 
+To enable Discover (Unsplash), set your API key as an environment variable before running or building:
+
+```bash
+# Windows (PowerShell)
+$env:UNSPLASH_ACCESS_KEY = "your_access_key_here"
+npm start
+
+# Build with embedded key
+$env:UNSPLASH_ACCESS_KEY = "your_access_key_here"
+npm run build
+```
+
+The key is embedded into the packaged exe at build time and is **not committed to source control**.
+
 ### First Use
 
-1. Click **"Add Folder"** to add a local folder containing your wallpapers
+1. Click **Add Folder** to add a local folder containing your wallpapers
 2. Browse your images in the gallery
-3. Click **"Set"** on any image to apply it as your wallpaper
-4. Optionally, go to **Discover** and enter an [Unsplash API key](https://unsplash.com/developers) to browse online wallpapers
+3. Click **Set** on any image to apply it as your desktop wallpaper
+4. Open **Settings** (gear icon in the top bar) to configure appearance and performance
 
 ---
 
-## 📦 Project Structure
+## Project Structure
 
 ```
 WallpaperStudio/
-├── src/
-│   ├── main.js              # Electron main process (IPC, file system, wallpaper API)
-│   ├── renderer.js          # UI logic (gallery, lazy loading, navigation)
-│   ├── preload.js           # Secure bridge between main and renderer
-│   ├── index.html           # Main app window (HTML + CSS)
-│   ├── slideshow-config.html  # Slideshow settings window
-│   └── slideshow-preload.js   # Preload for slideshow window
-├── package.json
-└── README.md
+|-- src/
+|   |-- main.js                 # Electron main process (IPC, wallpaper API, settings)
+|   |-- renderer.js             # UI logic (gallery, navigation, Unsplash)
+|   |-- preload.js              # Secure bridge between main and renderer
+|   |-- index.html              # Main app window (HTML + CSS)
+|   |-- settings.html           # Settings window
+|   |-- settings-preload.js     # Preload for settings window
+|   |-- slideshow-config.html   # Slideshow settings window
+|   `-- slideshow-preload.js    # Preload for slideshow window
+|-- icon.png
+|-- package.json
+`-- README.md
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Framework | [Electron](https://www.electronjs.org/) 27 |
-| Wallpaper API | [wallpaper](https://www.npmjs.com/package/wallpaper) npm package |
+| Wallpaper API | Win32 SystemParametersInfo via PowerShell (Windows 10/11 compatible) |
 | Online Images | [Unsplash API](https://unsplash.com/developers) |
 | HTTP (main) | [node-fetch](https://www.npmjs.com/package/node-fetch) |
-| Storage | JSON flat files (albums, DB, config) |
+| Storage | JSON flat files (albums, DB, config, app-settings) |
 
 ---
 
-## 📋 Changelog
+## Unsplash API Compliance
 
-### v0.2.0 — Performance & UX Polish
-- **Shimmer skeleton loading** — Cards now show an animated shimmer effect while images load, eliminating the broken-image flash that appeared when opening folders
-- **Lightbox shimmer** — Preview overlay also shows a smooth shimmer while the full-resolution image loads
-- **Improved IntersectionObserver** — `rootMargin` tuned to 300px for a better preload balance; `onload`/`onerror` handlers properly remove the shimmer once the image is ready (or fails silently)
-- **Gallery render optimization** — DOM is hidden during bulk card insertion to avoid layout thrashing, then revealed in the next animation frame for a smoother folder-switch experience
-- **Cleaner lightbox reset** — Closing the preview now fully resets loading state to prevent stale shimmer on the next open
-- **Standalone Exe** — Available as a packaged `.exe` for easy installation without Node.js
+This application follows the [Unsplash API Guidelines](https://unsplash.com/documentation#guidelines):
 
-### v0.1.0 — Initial Release
+- Photos are hotlinked to original Unsplash image URLs
+- The Unsplash download endpoint is triggered when a photo is saved by the user
+- Photographer name and Unsplash are attributed on every photo card and in the lightbox
+- The app is visually distinct from Unsplash and does not use the Unsplash logo or name
+
+### Setting Up the API Key (Developers)
+
+1. Go to [https://unsplash.com/developers](https://unsplash.com/developers)
+2. Create a free account and register a new application
+3. Copy your **Access Key**
+4. Set it as the `UNSPLASH_ACCESS_KEY` environment variable before building
+
+The key is **never stored in source code or committed to Git**.
+
+---
+
+## Changelog
+
+### v0.3.1
+
+- **Settings layout fix** - Replaced fixed-height scroll body with a flex-column layout (header + scrollable area + footer) so all settings sections always display correctly regardless of window size
+- **Accent color now works** - Selecting an accent color in Settings shows a live preview in the settings window itself and correctly applies the chosen color and its hover variant across the full app on save
+- **Accent hover variant** - Each accent color now ships with a matched darker shade for hover/active states (was previously using the same color for both)
+- **Hardware acceleration defaults to ON** - The toggle now correctly shows enabled by default for new installs
+- **Settings window is resizable** - Minimum height enforced at 520px so no sections are ever clipped
+- **Toggle markup fixed** - Track and thumb elements are now sibling spans (not nested) so CSS transitions work correctly across Electron's Chromium version
+
+### v0.3.0
+
+- **Windows 11 wallpaper fix** - Replaced the `wallpaper` npm package with a direct Win32 P/Invoke call via PowerShell, fixing the issue where the Set button had no effect on Windows 11
+- **Settings panel** - New settings window accessible from the gear icon in the top bar, with:
+  - Hardware acceleration on/off (requires restart)
+  - Dark / Light mode toggle
+  - Accent color picker (8 colors)
+  - Slideshow default interval
+  - Thumbnail size (small/medium/large)
+  - Show/hide image names
+- **Unsplash API compliance** - Photographer attribution shown on every card and in the lightbox; download endpoint triggered on save; photos hotlinked to Unsplash URLs
+- **Environment-based API key** - Unsplash key is now set via `UNSPLASH_ACCESS_KEY` environment variable at build time, keeping it out of source control while embedding it in the packaged exe
+- **Logo in title bar** - App icon displayed in the top bar with rounded corners
+- **Light mode** - Full light theme support across all panels and windows
+- **App icon** - Icon applied to window title bar and taskbar
+
+### v0.2.0 - Performance and UX Polish
+
+- Shimmer skeleton loading cards
+- Lightbox shimmer while full image loads
+- Improved IntersectionObserver (300px rootMargin)
+- Gallery render optimization using DocumentFragment
+- Standalone exe build
+
+### v0.1.0 - Initial Release
+
 - Multi-album local folder management
 - Favorites, Spotlight, and Discover views
 - One-click wallpaper setting
@@ -105,24 +168,9 @@ WallpaperStudio/
 
 ---
 
-## 🔑 Unsplash API Key
+## Windows Notes
 
-To use the **Discover** tab:
-
-1. Go to [https://unsplash.com/developers](https://unsplash.com/developers)
-2. Create a free account and register a new application
-3. Copy your **Access Key**
-4. Paste it in the Discover tab inside the app
-
-Your key is stored locally in `localStorage` — it never leaves your machine.
-
----
-
-## 🪟 Windows Notes
-
-- Wallpaper setting uses the `wallpaper` npm package which calls native Windows APIs
+- Wallpaper setting uses Win32 `SystemParametersInfo` called via an inline PowerShell C# snippet, with a registry-based fallback - compatible with Windows 10 and Windows 11
 - Spotlight images are read from `%LOCALAPPDATA%\Packages\Microsoft.Windows.ContentDeliveryManager_*`
-- Hardware acceleration is disabled by default to prevent GPU crashes on some drivers
-
----
-
+- Hardware acceleration can be toggled in Settings; the change requires an app restart
+- App settings (theme, accent, thumbnail size) are stored in `%APPDATA%\wallpaper-studio\app-settings.json`
