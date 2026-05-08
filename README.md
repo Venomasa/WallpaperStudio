@@ -6,7 +6,7 @@ Manage local wallpaper collections and discover high-quality photos from Unsplas
 ![Version](https://img.shields.io/badge/version-0.3.1-blueviolet)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)
 ![Electron](https://img.shields.io/badge/electron-27-47848f)
-![License](https://img.shields.io/badge/license-MIT-green)
+
 
 ---
 
