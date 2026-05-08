@@ -3,10 +3,10 @@
 A modern, offline-first desktop wallpaper manager for Windows, built with Electron.
 Manage local wallpaper collections and discover high-quality photos from Unsplash - from a clean, polished UI.
 
-![Version](https://img.shields.io/badge/version-0.3.1-blueviolet)
+![Version](https://img.shields.io/badge/version-0.3.3-blueviolet)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)
 ![Electron](https://img.shields.io/badge/electron-27-47848f)
-![License](https://img.shields.io/badge/license-MIT-green)
+
 
 ---
 
@@ -123,6 +123,18 @@ The key is **never stored in source code or committed to Git**.
 ---
 
 ## Changelog
+
+### v0.3.3
+
+- **Hardware acceleration off by default** - Default changed from `true` to `false` while stability issues are investigated. Existing users who previously toggled the setting are unaffected; new installs will start with acceleration disabled and can opt in from Settings.
+- **Discover: View on Unsplash button** - Each photo card in the Discover tab now has a small icon button (↗) that opens the photo's page on Unsplash in the default browser. Correct UTM attribution parameters are included as required by Unsplash API guidelines.
+
+### v0.3.2 - Bug Fixes
+
+- **Bug 1** - Fixed Unsplash Discover tab being disabled in built releases — the API key is now embedded at build time via a prebuild script (scripts/inject-env.js) instead of being read from the shell environment, which is unavailable in packaged executables
+- **Bug 2** - Fixed flash of unstyled content on startup — the window is now hidden until saved theme and accent color preferences are applied, preventing the brief flicker to default styles on launch
+- **Bug 3** - Fixed incorrect image dimensions being reported for PNG files — the parser was skipping byte 17 of the width/height fields and using the wrong multiplier for the high byte, causing wrong metadata display and broken Spotlight landscape detection
+- **bug 4** - Fixed potential duplicate wallpaper IDs when scanning folders containing multiple images — IDs are now unique regardless of how fast the scan runs
 
 ### v0.3.1
 

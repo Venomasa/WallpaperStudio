@@ -20,7 +20,7 @@ function loadAppSettingsSync() {
       return JSON.parse(fs.readFileSync(SETTINGS_FILE_PATH, 'utf8'));
     }
   } catch {}
-  return { hardwareAcceleration: true, theme: 'dark', accentColor: '#6366f1', minimizeToTray: false, startWithWindows: false };
+  return { hardwareAcceleration: false, theme: 'dark', accentColor: '#6366f1', minimizeToTray: false, startWithWindows: false };
 }
 
 function saveAppSettingsSync(settings) {
@@ -40,10 +40,20 @@ if (!appSettings.hardwareAcceleration) {
   app.disableHardwareAcceleration();
 }
 
-// ─── Unsplash API key injected as environment variable at build/run time ──────
-// Set UNSPLASH_ACCESS_KEY in your environment before building the exe.
-// This keeps the key out of source code for GitHub but embeds it in the packaged app.
-const UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY || '';
+// ─── Unsplash API key ─────────────────────────────────────────────────────────
+// For `npm start` (dev): read from the shell environment variable directly.
+// For `npm run build` (packaged exe): the "prebuild" script (scripts/inject-env.js)
+//   reads the env var and writes it to src/build-config.json, which gets bundled
+//   into the asar. process.env is NOT available in a packaged exe, so we must
+//   read the embedded file instead.
+let UNSPLASH_ACCESS_KEY = '';
+try {
+  const buildConfig = JSON.parse(fs.readFileSync(path.join(__dirname, 'build-config.json'), 'utf8'));
+  UNSPLASH_ACCESS_KEY = buildConfig.unsplashKey || '';
+} catch {
+  // build-config.json not present → development mode, fall back to env var
+  UNSPLASH_ACCESS_KEY = process.env.UNSPLASH_ACCESS_KEY || '';
+}
 
 // ─── Paths ────────────────────────────────────────────────────────────────────
 const DEFAULT_WALLPAPER_DIR = path.join(app.getPath('userData'), 'wallpapers');
@@ -129,7 +139,7 @@ async function scanWallpapersInFolder(folderPath, albumId) {
     const fullPath = path.join(folderPath, name);
     if (!existingPaths.has(fullPath)) {
       db.wallpapers = db.wallpapers || [];
-      db.wallpapers.push({ id: 'wp_' + Date.now() + '_' + added, path: fullPath, name, favorite: false, addedAt: Date.now(), albumId });
+      db.wallpapers.push({ id: 'wp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), path: fullPath, name, favorite: false, addedAt: Date.now(), albumId });
       added++;
     }
   }
@@ -275,14 +285,34 @@ async function pruneDbEntries() {
 function createWindow() {
   Menu.setApplicationMenu(null);
   const iconPath = path.join(__dirname, '..', 'icon.png');
+
+  // Match window background to saved theme so the native frame never shows a
+  // white or mismatched colour while the renderer is loading.
+  // This also fixes the blank-frame flash caused by the GPU process crashing
+  // and restarting (exit_code=-1073740791): show:false keeps the window hidden
+  // at OS level until ready-to-show fires after the first successful paint,
+  // regardless of how many GPU restarts occurred before it.
+  const savedTheme = appSettings.theme || 'dark';
+  const backgroundColor = savedTheme === 'light' ? '#f5f5f7' : '#0d0d10';
+
   mainWindow = new BrowserWindow({
     width: 1000, height: 700,
+    show: false,
+    backgroundColor,
     autoHideMenuBar: true,
     icon: fs.existsSync(iconPath) ? iconPath : undefined,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false }
   });
   mainWindow.setMenuBarVisibility(false);
   mainWindow.loadFile(path.join(__dirname, 'index.html'));
+
+  // Show only after first paint. 300ms fallback ensures the window always
+  // appears even if ready-to-show never fires (repeated GPU crashes etc).
+  let shown = false;
+  const showWindow = () => { if (!shown) { shown = true; mainWindow?.show(); } };
+  mainWindow.once('ready-to-show', showWindow);
+  setTimeout(showWindow, 300);
+
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
@@ -397,8 +427,8 @@ ipcMain.handle('get-image-metadata', async (e, imagePath) => {
           } else { offset++; }
         }
       } else if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
-        dimensions.width  = buffer[16]*65536 + buffer[18]*256 + buffer[19];
-        dimensions.height = buffer[20]*65536 + buffer[22]*256 + buffer[23];
+        dimensions.width  = buffer[16]*16777216 + buffer[17]*65536 + buffer[18]*256 + buffer[19];
+        dimensions.height = buffer[20]*16777216 + buffer[21]*65536 + buffer[22]*256 + buffer[23];
       } else if (buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
         dimensions.width  = buffer[6] + buffer[7]*256;
         dimensions.height = buffer[8] + buffer[9]*256;
@@ -458,7 +488,7 @@ ipcMain.handle('get-spotlight-images', async () => {
             } else { offset++; }
           }
         } else if (buffer[0]===0x89&&buffer[1]===0x50&&buffer[2]===0x4E&&buffer[3]===0x47) {
-          width=buffer[16]*65536+buffer[18]*256+buffer[19]; height=buffer[20]*65536+buffer[22]*256+buffer[23];
+          width=buffer[16]*16777216+buffer[17]*65536+buffer[18]*256+buffer[19]; height=buffer[20]*16777216+buffer[21]*65536+buffer[22]*256+buffer[23];
         } else if (buffer[0]===0x47&&buffer[1]===0x49&&buffer[2]===0x46) {
           width=buffer[6]+buffer[7]*256; height=buffer[8]+buffer[9]*256;
         }

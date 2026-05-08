@@ -413,6 +413,23 @@ button:active { transform: scale(.97); }
 .disc-save:hover { background: var(--c-acc2); }
 .disc-save:disabled { opacity: .6; cursor: not-allowed; }
 
+/* Small "View on Unsplash" icon button */
+.disc-view-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  background: rgba(255,255,255,.15);
+  border-radius: var(--r-sm);
+  color: rgba(255,255,255,.9);
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background .15s;
+  border: 1px solid rgba(255,255,255,.2);
+}
+.disc-view-btn:hover {
+  background: rgba(255,255,255,.28);
+  color: #fff;
+}
+
 .disc-loading, .disc-empty {
   grid-column: 1/-1; text-align: center; padding: 60px 20px;
   color: var(--c-txt3); font-size: 14px; line-height: 2;
@@ -448,7 +465,7 @@ button:active { transform: scale(.97); }
 ::-webkit-scrollbar-thumb:hover { background: var(--c-bord2); }
 </style>
 </head>
-<body>
+<body style="visibility:hidden">
 
 <!-- TOP BAR -->
 <header id="topbar">

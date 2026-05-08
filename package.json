@@ -1,13 +1,15 @@
 {
   "name": "wallpaper-studio",
   "productName": "Wallpaper Studio",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "description": "Modern desktop wallpaper manager for Windows — manage local collections and discover photos from Unsplash",
-  "author": "Wallpaper Studio",
+  "author": "Venomasa",
   "main": "src/main.js",
   "scripts": {
     "start": "electron .",
+    "prebuild": "node scripts/inject-env.js",
     "build": "electron-builder --win",
+    "prebuild:portable": "node scripts/inject-env.js",
     "build:portable": "electron-builder --win portable"
   },
   "build": {

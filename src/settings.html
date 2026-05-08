@@ -40,20 +40,20 @@
 ============================================================ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body {
+html {
   height: 100%;
-  overflow: hidden;
 }
 
 body {
+  height: 100%;
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: var(--c-bg0);
   color: var(--c-txt);
   font-size: 13px;
   line-height: 1.5;
-  /* Full-height flex column so header + scroll area + footer fill window */
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* only .body scrolls */
 }
 
 /* ============================================================
@@ -121,18 +121,18 @@ body {
 .row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   padding: 12px 14px;
-  gap: 14px;
+  gap: 10px 14px;
   border-bottom: 1px solid var(--c-border);
   min-height: 52px;
 }
 .row:last-child { border-bottom: none; }
-.row-info { flex: 1; min-width: 0; }
+.row-info { flex: 1 1 160px; min-width: 0; }
 .row-label {
   font-weight: 500;
   font-size: 13px;
   color: var(--c-txt);
-  white-space: nowrap;
 }
 .row-desc {
   font-size: 11px;
@@ -194,7 +194,8 @@ body {
   padding: 7px 10px;
   font: inherit; font-size: 12px;
   outline: none; cursor: pointer;
-  min-width: 140px;
+  min-width: 120px;
+  max-width: 100%;
   flex-shrink: 0;
 }
 .sel:focus { border-color: var(--c-acc); }
@@ -265,7 +266,7 @@ button:active { filter: brightness(.9); }
 <!-- HEADER -->
 <div class="hdr">
   <h1>Settings</h1>
-  <p>Wallpaper Studio v0.3.1</p>
+  <p>Wallpaper Studio v0.3.3</p>
 </div>
 
 <!-- SCROLLABLE BODY -->
@@ -277,10 +278,10 @@ button:active { filter: brightness(.9); }
     <div class="row">
       <div class="row-info">
         <div class="row-label">Hardware Acceleration</div>
-        <div class="row-desc">Uses GPU for faster rendering. Enabled by default. Disable only if you see crashes or glitches on startup.</div>
+        <div class="row-desc">Uses GPU for faster rendering. Currently disabled by default due to known instability on some systems. Enable if rendering feels slow.</div>
       </div>
       <label class="tog" id="tog-hw" title="Toggle hardware acceleration">
-        <input type="checkbox" id="chk-hw" checked/>
+        <input type="checkbox" id="chk-hw"/>
         <span class="tog-track"></span>
         <span class="tog-thumb"></span>
       </label>
@@ -305,7 +306,7 @@ button:active { filter: brightness(.9); }
       </select>
     </div>
 
-    <div class="row" style="flex-wrap:wrap; gap:10px;">
+    <div class="row">
       <div class="row-info">
         <div class="row-label">Accent Color</div>
         <div class="row-desc">Applied to buttons, active items, and toggles across the app.</div>
@@ -371,7 +372,7 @@ button:active { filter: brightness(.9); }
     <div class="row">
       <div class="row-info">
         <div class="row-label">Wallpaper Studio</div>
-        <div class="row-desc">Version 0.3.1 &nbsp;·&nbsp; Windows 10 / 11 &nbsp;·&nbsp; Unsplash API compliant</div>
+        <div class="row-desc">Version 0.3.3 &nbsp;·&nbsp; Windows 10 / 11 &nbsp;·&nbsp; Unsplash API compliant</div>
       </div>
     </div>
   </div>
@@ -416,11 +417,11 @@ function applyTheme(theme) {
 
 async function init() {
   settings = await window.settingsApi.getAppSettings();
-  origHwAccel = settings.hardwareAcceleration !== false; // default TRUE
+  origHwAccel = settings.hardwareAcceleration === true; // default FALSE
 
   // --- Hardware acceleration ---
   const chkHw = document.getElementById('chk-hw');
-  chkHw.checked = settings.hardwareAcceleration !== false; // true by default
+  chkHw.checked = settings.hardwareAcceleration === true; // false by default
   chkHw.addEventListener('change', () => {
     const changed = chkHw.checked !== origHwAccel;
     document.getElementById('hw-notice').classList.toggle('on', changed);

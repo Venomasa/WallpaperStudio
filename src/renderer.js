@@ -441,6 +441,18 @@ function makeDiscCard(photo) {
   credit.className = 'disc-credit';
   credit.innerHTML = `<a href="${photo.user.links.html}?utm_source=wallpaper_studio&utm_medium=referral" target="_blank" style="color:inherit;text-decoration:none">${photo.user.name}</a> on Unsplash`;
 
+  const rowBtns = document.createElement('div');
+  rowBtns.style.cssText = 'display:flex;gap:6px;align-items:center;';
+
+  // Small "View on Unsplash" link button
+  const viewBtn = document.createElement('a');
+  viewBtn.className = 'disc-view-btn';
+  viewBtn.href = `${photo.links.html}?utm_source=wallpaper_studio&utm_medium=referral`;
+  viewBtn.target = '_blank';
+  viewBtn.title = 'View on Unsplash';
+  viewBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
+  viewBtn.onclick = e => e.stopPropagation();
+
   const saveBtn = document.createElement('button');
   saveBtn.className = 'disc-save';
   saveBtn.textContent = 'Save';
@@ -462,8 +474,11 @@ function makeDiscCard(photo) {
     }
   };
 
+  rowBtns.appendChild(viewBtn);
+  rowBtns.appendChild(saveBtn);
+
   over.appendChild(credit);
-  over.appendChild(saveBtn);
+  over.appendChild(rowBtns);
   card.appendChild(img);
   card.appendChild(over);
   return card;
@@ -574,11 +589,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnSlideshow: $('btn-slideshow'),
   });
 
-  // Load app settings and apply
+  // Load app settings and apply — body is hidden until this resolves to prevent
+  // a flash of default theme/accent before user prefs are applied.
   try {
     const settings = await window.wp.getAppSettings();
     applySettings(settings);
-  } catch {}
+  } catch {
+    // settings failed — still must show the body
+  } finally {
+    document.body.style.visibility = '';
+  }
 
   // Load embedded Unsplash key (from env var set by developer)
   try {
