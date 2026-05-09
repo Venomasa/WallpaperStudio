@@ -1,35 +1,45 @@
+'use strict';
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('wp', {
-  getWallpapers:          ()           => ipcRenderer.invoke('get-wallpapers'),
-  addWallpaper:           (path)       => ipcRenderer.invoke('add-wallpaper', path),
-  openFile:               ()           => ipcRenderer.invoke('open-file'),
-  getSettings:            ()           => ipcRenderer.invoke('get-settings'),
-  chooseStorageDir:       ()           => ipcRenderer.invoke('choose-storage-dir'),
-  setWallpaper:           (path)       => ipcRenderer.invoke('set-wallpaper', path),
-  toggleFavorite:         (id)         => ipcRenderer.invoke('toggle-favorite', id),
-  startSlideshow:         (interval)   => ipcRenderer.send('start-slideshow', interval),
-  stopSlideshow:          ()           => ipcRenderer.send('stop-slideshow'),
-  onRefresh:              (cb)         => ipcRenderer.on('refresh-gallery', cb),
-  onSettingsUpdated:      (cb)         => ipcRenderer.on('settings-updated', (_, s) => cb(s)),
-  openSlideshowConfig:    ()           => ipcRenderer.invoke('open-slideshow-config'),
-  openSettings:           ()           => ipcRenderer.invoke('open-settings'),
-  getAlbums:              ()           => ipcRenderer.invoke('get-albums'),
-  getCurrentAlbumId:      ()           => ipcRenderer.invoke('get-current-album'),
-  setCurrentAlbum:        (id)         => ipcRenderer.invoke('set-current-album', id),
-  addAlbum:               (name, folder) => ipcRenderer.invoke('add-album', name, folder),
-  selectAlbumFolder:      ()           => ipcRenderer.invoke('select-album-folder'),
-  getAlbumName:           (folderPath) => ipcRenderer.invoke('get-album-name', folderPath),
-  selectFolder:           ()           => ipcRenderer.invoke('select-folder'),
-  removeAlbum:            (id)         => ipcRenderer.invoke('remove-album', id),
-  deleteImage:            (path)       => ipcRenderer.invoke('delete-image', path),
-  getImageMetadata:       (path)       => ipcRenderer.invoke('get-image-metadata', path),
-  getAllWallpapers:        ()           => ipcRenderer.invoke('get-all-wallpapers'),
-  getSpotlightImages:     ()           => ipcRenderer.invoke('get-spotlight-images'),
-  copyToAlbum:            (p, id)      => ipcRenderer.invoke('copy-to-album', p, id),
-  copySpotlightToAlbum:   (p, id)      => ipcRenderer.invoke('copy-spotlight-to-album', p, id),
-  downloadImageUrl:       (url, fn, albumId, dlLoc) => ipcRenderer.invoke('download-image-url', url, fn, albumId, dlLoc),
-  getUnsplashKey:         ()           => ipcRenderer.invoke('get-unsplash-key'),
-  getAppSettings:         ()           => ipcRenderer.invoke('get-app-settings'),
-  saveAppSettings:        (s)          => ipcRenderer.invoke('save-app-settings', s),
+  // Wallpapers
+  getWallpapers:        ()                        => ipcRenderer.invoke('get-wallpapers'),
+  getAllWallpapers:      ()                        => ipcRenderer.invoke('get-all-wallpapers'),
+  getSpotlightImages:   ()                        => ipcRenderer.invoke('get-spotlight-images'),
+  addWallpaper:         (path)                    => ipcRenderer.invoke('add-wallpaper', path),
+  openFile:             ()                        => ipcRenderer.invoke('open-file'),
+  setWallpaper:         (path)                    => ipcRenderer.invoke('set-wallpaper', path),
+  deleteImage:          (path)                    => ipcRenderer.invoke('delete-image', path),
+  getImageMetadata:     (path)                    => ipcRenderer.invoke('get-image-metadata', path),
+  toggleFavorite:       (id)                      => ipcRenderer.invoke('toggle-favorite', id),
+  copyToAlbum:          (p, id)                   => ipcRenderer.invoke('copy-to-album', p, id),
+  copySpotlightToAlbum: (p, id)                   => ipcRenderer.invoke('copy-spotlight-to-album', p, id),
+
+  // Albums / folders
+  getAlbums:            ()                        => ipcRenderer.invoke('get-albums'),
+  getCurrentAlbumId:    ()                        => ipcRenderer.invoke('get-current-album'),
+  setCurrentAlbum:      (id)                      => ipcRenderer.invoke('set-current-album', id),
+  addAlbum:             (name, folder)            => ipcRenderer.invoke('add-album', name, folder),
+  removeAlbum:          (id)                      => ipcRenderer.invoke('remove-album', id),
+  selectAlbumFolder:    ()                        => ipcRenderer.invoke('select-album-folder'),
+  getAlbumName:         (folderPath)              => ipcRenderer.invoke('get-album-name', folderPath),
+  selectFolder:         ()                        => ipcRenderer.invoke('select-folder'),
+
+  // App settings
+  getSettings:          ()                        => ipcRenderer.invoke('get-settings'),
+  chooseStorageDir:     ()                        => ipcRenderer.invoke('choose-storage-dir'),
+  getAppSettings:       ()                        => ipcRenderer.invoke('get-app-settings'),
+  saveAppSettings:      (s)                       => ipcRenderer.invoke('save-app-settings', s),
+
+  // Discover / Unsplash
+  getUnsplashKey:       ()                        => ipcRenderer.invoke('get-unsplash-key'),
+  downloadImageUrl:     (url, fn, albumId, dlLoc) => ipcRenderer.invoke('download-image-url', url, fn, albumId, dlLoc),
+
+  // Slideshow (fire-and-forget IPC sends to main process timer)
+  startSlideshow:       (intervalMs)              => ipcRenderer.send('start-slideshow', intervalMs),
+  stopSlideshow:        ()                        => ipcRenderer.send('stop-slideshow'),
+
+  // Events from main → renderer
+  onRefresh:            (cb) => ipcRenderer.on('refresh-gallery',   (_e)    => cb()),
+  onSettingsUpdated:    (cb) => ipcRenderer.on('settings-updated',  (_e, s) => cb(s)),
 });

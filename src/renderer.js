@@ -4,38 +4,52 @@
 // App State
 // ─────────────────────────────────────────────────────────────────────────────
 const S = {
-  view: 'empty',
+  view: 'empty',           // 'empty' | 'gallery' | 'discover' | 'settings' | 'slideshow'
   currentAlbumId: null,
+  galleryMode: 'albums',   // 'albums' | 'favorites' | 'spotlight'  (within gallery view)
   albums: [],
-  unsplashKey: '',   // loaded from main process (env var), NOT localStorage
+  unsplashKey: '',
   unsplashPage: 1,
   unsplashCatIdx: 0,
   unsplashQuery: '',
   unsplashLoading: false,
   discoverReady: false,
+  slideshowRunning: false,
+  settingsSnapshot: null,  // settings as they were when user entered Settings view
 };
 
 const CATS = [
-  { label: 'Featured',      query: null,                    topic: null },
-  { label: 'Nature',        query: 'nature landscape',       topic: 'nature' },
-  { label: 'Architecture',  query: 'architecture building',  topic: 'architecture-interior' },
-  { label: 'Space',         query: 'space galaxy stars',     topic: null },
-  { label: 'Animals',       query: 'animals wildlife',       topic: 'animals' },
-  { label: 'Travel',        query: 'travel landscape',       topic: 'travel' },
-  { label: 'Minimal',       query: 'minimalist wallpaper',   topic: null },
-  { label: 'Abstract',      query: 'abstract art wallpaper', topic: null },
-  { label: 'City',          query: 'city skyline night',     topic: null },
-  { label: 'Mountains',     query: 'mountains snow peaks',   topic: null },
+  { label: 'Featured',     query: null,                    topic: null },
+  { label: 'Nature',       query: 'nature landscape',      topic: 'nature' },
+  { label: 'Architecture', query: 'architecture building', topic: 'architecture-interior' },
+  { label: 'Space',        query: 'space galaxy stars',    topic: null },
+  { label: 'Animals',      query: 'animals wildlife',      topic: 'animals' },
+  { label: 'Travel',       query: 'travel landscape',      topic: 'travel' },
+  { label: 'Minimal',      query: 'minimalist wallpaper',  topic: null },
+  { label: 'Abstract',     query: 'abstract art wallpaper',topic: null },
+  { label: 'City',         query: 'city skyline night',    topic: null },
+  { label: 'Mountains',    query: 'mountains snow peaks',  topic: null },
+];
+
+const ACCENTS = [
+  { name: 'Indigo', hex: '#6366f1', dark: '#4f46e5' },
+  { name: 'Violet', hex: '#8b5cf6', dark: '#7c3aed' },
+  { name: 'Blue',   hex: '#3b82f6', dark: '#2563eb' },
+  { name: 'Cyan',   hex: '#06b6d4', dark: '#0891b2' },
+  { name: 'Teal',   hex: '#14b8a6', dark: '#0d9488' },
+  { name: 'Green',  hex: '#22c55e', dark: '#16a34a' },
+  { name: 'Rose',   hex: '#f43f5e', dark: '#e11d48' },
+  { name: 'Orange', hex: '#f97316', dark: '#ea580c' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DOM cache
+// DOM helpers
 // ─────────────────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
-const D = {};
+const D = {};  // cached DOM references, filled in DOMContentLoaded
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Apply settings (theme, accent, thumbnail size)
+// Settings helpers
 // ─────────────────────────────────────────────────────────────────────────────
 function applySettings(settings) {
   if (!settings) return;
@@ -44,13 +58,11 @@ function applySettings(settings) {
   if (settings.theme === 'light') document.documentElement.dataset.theme = 'light';
   else delete document.documentElement.dataset.theme;
 
-  // Accent color — apply both normal and dark/hover variant
+  // Accent color
   if (settings.accentColor) {
     const r = document.documentElement;
     r.style.setProperty('--c-acc',  settings.accentColor);
-    // Use saved dark variant if available, otherwise darken by blending toward black
-    const dark = settings.accentColorDark || settings.accentColor;
-    r.style.setProperty('--c-acc2', dark);
+    r.style.setProperty('--c-acc2', settings.accentColorDark || settings.accentColor);
   }
 
   // Thumbnail size
@@ -61,24 +73,55 @@ function applySettings(settings) {
   }
 }
 
+// Populate settings UI controls from a settings object
+function populateSettingsUI(settings) {
+  if (!settings) return;
+
+  const chkHw = $('chk-hw');
+  chkHw.checked = settings.hardwareAcceleration === true;
+  $('hw-notice').classList.remove('on');
+
+  $('sel-theme').value     = settings.theme || 'dark';
+  $('sel-thumbsize').value = String(settings.thumbnailSize || 210);
+  $('chk-names').checked   = settings.showImageNames === true;
+  $('ss-sel-interval').value = String(settings.slideshowInterval || 60000);
+
+  // Accent swatches
+  const savedAccent = settings.accentColor || '#6366f1';
+  $('swatches').querySelectorAll('.swatch').forEach(sw => {
+    sw.classList.toggle('active', sw.dataset.hex === savedAccent);
+  });
+}
+
+// Collect current values from settings UI controls into an object
+function collectSettingsUI(prev) {
+  const activeSwatch = $('swatches').querySelector('.swatch.active');
+  return {
+    ...prev,
+    hardwareAcceleration: $('chk-hw').checked,
+    theme:                $('sel-theme').value,
+    accentColor:          activeSwatch ? activeSwatch.dataset.hex  : (prev.accentColor || '#6366f1'),
+    accentColorDark:      activeSwatch ? activeSwatch.dataset.dark : (prev.accentColorDark || '#4f46e5'),
+    thumbnailSize:        parseInt($('sel-thumbsize').value, 10),
+    showImageNames:       $('chk-names').checked,
+    slideshowInterval:    parseInt($('ss-sel-interval').value, 10),
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// Lazy image loading — IntersectionObserver
+// Lazy image loading
 // ─────────────────────────────────────────────────────────────────────────────
 function applyLazySrc(img) {
   if (!img.dataset.src) return;
   const src = img.dataset.src;
   img.removeAttribute('data-src');
-  img.onload  = () => { img.classList.add('loaded'); img.onload = null; img.onerror = null; };
+  img.onload  = () => { img.classList.add('loaded'); img.onload = img.onerror = null; };
   img.onerror = () => { img.classList.add('loaded'); img.onerror = null; };
   img.src = src;
 }
 
 const imgObs = new IntersectionObserver(entries => {
-  entries.forEach(entry => {
-    if (!entry.isIntersecting) return;
-    applyLazySrc(entry.target);
-    imgObs.unobserve(entry.target);
-  });
+  entries.forEach(e => { if (e.isIntersecting) { applyLazySrc(e.target); imgObs.unobserve(e.target); } });
 }, { rootMargin: '300px 0px' });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -111,7 +154,7 @@ function closeLightbox() {
   D.lightbox.classList.remove('on');
   D.lbImg.src = '';
   D.lbImg.classList.remove('loaded');
-  D.lbImg.onload = null; D.lbImg.onerror = null;
+  D.lbImg.onload = D.lbImg.onerror = null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -160,7 +203,6 @@ function closeDetails() { D.detPanel.classList.remove('on'); }
 // Context menu
 // ─────────────────────────────────────────────────────────────────────────────
 let _ctx = null;
-
 function showCtxMenu(e, data) {
   e.stopPropagation();
   _ctx = data;
@@ -169,7 +211,7 @@ function showCtxMenu(e, data) {
   D.ctxMenu.classList.add('on');
   const mw = D.ctxMenu.offsetWidth, mh = D.ctxMenu.offsetHeight;
   let x = e.clientX, y = e.clientY;
-  if (x + mw > window.innerWidth - 8)  x = window.innerWidth  - mw - 8;
+  if (x + mw > window.innerWidth  - 8) x = window.innerWidth  - mw - 8;
   if (y + mh > window.innerHeight - 8) y = window.innerHeight - mh - 8;
   D.ctxMenu.style.left = x + 'px';
   D.ctxMenu.style.top  = y + 'px';
@@ -207,7 +249,7 @@ async function ctxUnfav() {
     _ctx.w.favorite = false;
     _ctx.favBtn.innerHTML = '&#9734;';
     _ctx.favBtn.classList.remove('fav-on');
-    if (S.view === 'favorites') removeCard(_ctx.card);
+    if (S.galleryMode === 'favorites') removeCard(_ctx.card);
   } catch { toast('Failed', 'error'); }
 }
 
@@ -218,7 +260,7 @@ function buildFoldersList() {
   D.foldersList.innerHTML = '';
   S.albums.forEach(a => {
     const div = document.createElement('div');
-    div.className = 'nav-item folder-item' + (S.view === 'albums' && S.currentAlbumId === a.id ? ' active' : '');
+    div.className = 'nav-item folder-item' + (S.view === 'gallery' && S.galleryMode === 'albums' && S.currentAlbumId === a.id ? ' active' : '');
     div.dataset.id = a.id;
 
     const span = document.createElement('span');
@@ -239,53 +281,93 @@ function buildFoldersList() {
         if (S.currentAlbumId === a.id) S.currentAlbumId = null;
         buildFoldersList();
         if (!S.albums.length) await navigateTo('empty');
-        else if (S.view === 'albums' && !S.currentAlbumId) await navigateTo('albums', S.albums[0].id);
+        else if (S.view === 'gallery' && S.galleryMode === 'albums' && !S.currentAlbumId) {
+          await navigateTo('gallery', 'albums', S.albums[0].id);
+        }
       } catch (err) { toast('Failed: ' + err.message, 'error'); }
     };
 
     div.appendChild(span);
     div.appendChild(del);
-    div.onclick = async e => { if (e.target === del) return; await navigateTo('albums', a.id); };
+    div.onclick = async e => { if (e.target === del) return; await navigateTo('gallery', 'albums', a.id); };
     D.foldersList.appendChild(div);
   });
 }
 
 function updateActiveNav() {
+  // Clear all
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  if (S.view === 'spotlight') $('nav-spot')?.classList.add('active');
-  if (S.view === 'favorites') $('nav-fav')?.classList.add('active');
-  if (S.view === 'discover')  $('nav-disc')?.classList.add('active');
-  if (S.view === 'albums' && S.currentAlbumId) {
-    D.foldersList.querySelector(`[data-id="${S.currentAlbumId}"]`)?.classList.add('active');
+
+  if (S.view === 'gallery') {
+    if (S.galleryMode === 'spotlight') $('nav-spot')?.classList.add('active');
+    if (S.galleryMode === 'favorites') $('nav-fav')?.classList.add('active');
+    if (S.galleryMode === 'albums' && S.currentAlbumId) {
+      D.foldersList.querySelector(`[data-id="${S.currentAlbumId}"]`)?.classList.add('active');
+    }
   }
-}
-
-function updateTopBar() {
-  D.btnAddLocal.style.display  = S.view === 'discover' ? 'none' : 'inline-flex';
-  D.btnSlideshow.style.display = S.view === 'albums'   ? 'inline-flex' : 'none';
+  if (S.view === 'discover')  $('nav-disc')?.classList.add('active');
+  if (S.view === 'settings')  $('nav-settings')?.classList.add('active');
+  if (S.view === 'slideshow') $('nav-slideshow')?.classList.add('active');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Navigation
+// View router
 // ─────────────────────────────────────────────────────────────────────────────
-async function navigateTo(view, albumId) {
-  closeDetails(); hideCtxMenu();
+// Views: 'empty' | 'gallery' | 'discover' | 'settings' | 'slideshow'
+// galleryMode: 'albums' | 'favorites' | 'spotlight'
+async function navigateTo(view, galleryMode, albumId) {
+  closeDetails();
+  hideCtxMenu();
+
   S.view = view;
-  if (albumId !== undefined) S.currentAlbumId = albumId;
-  if (view === 'albums' && S.currentAlbumId) await window.wp.setCurrentAlbum(S.currentAlbumId);
+  if (galleryMode !== undefined) S.galleryMode = galleryMode;
+  if (albumId     !== undefined) S.currentAlbumId = albumId;
+  if (view === 'gallery' && S.galleryMode === 'albums' && S.currentAlbumId) {
+    await window.wp.setCurrentAlbum(S.currentAlbumId);
+  }
+
+  // Activate the right view panel
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  const viewId = {
+    empty:     'view-empty',
+    gallery:   'view-gallery',
+    discover:  'view-discover',
+    settings:  'view-settings',
+    slideshow: 'view-slideshow',
+  }[view];
+  if (viewId) $(viewId)?.classList.add('active');
 
   updateActiveNav();
-  updateTopBar();
 
-  D.emptyState.style.display   = view === 'empty'    ? 'flex'  : 'none';
-  D.galleryWrap.style.display  = (view === 'albums' || view === 'favorites' || view === 'spotlight') ? 'block' : 'none';
-  D.discoverWrap.style.display = view === 'discover' ? 'block' : 'none';
-
+  // View-specific init
   if (view === 'discover') {
     if (!S.discoverReady && S.unsplashKey) { S.discoverReady = true; loadDiscover(); }
     return;
   }
-  if (view !== 'empty') await renderGallery();
+
+  if (view === 'gallery') {
+    await renderGallery();
+    return;
+  }
+
+  if (view === 'settings') {
+    // Snapshot current settings so Discard works
+    try {
+      S.settingsSnapshot = await window.wp.getAppSettings();
+      populateSettingsUI(S.settingsSnapshot);
+    } catch {}
+    return;
+  }
+
+  if (view === 'slideshow') {
+    // Populate interval from saved settings
+    try {
+      const cfg = await window.wp.getAppSettings();
+      $('ss-sel-interval').value = String(cfg.slideshowInterval || 60000);
+    } catch {}
+    updateSlideshowUI();
+    return;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -295,22 +377,17 @@ async function renderGallery() {
   imgObs.disconnect();
   let items = [];
   try {
-    if (S.view === 'spotlight')       items = await window.wp.getSpotlightImages() || [];
-    else if (S.view === 'favorites')  items = (await window.wp.getAllWallpapers() || []).filter(w => w.favorite);
-    else if (S.view === 'albums' && S.currentAlbumId) items = await window.wp.getWallpapers() || [];
+    if (S.galleryMode === 'spotlight')     items = await window.wp.getSpotlightImages() || [];
+    else if (S.galleryMode === 'favorites') items = (await window.wp.getAllWallpapers() || []).filter(w => w.favorite);
+    else if (S.galleryMode === 'albums' && S.currentAlbumId) items = await window.wp.getWallpapers() || [];
   } catch (err) { console.error('Gallery load error', err); }
 
   const frag = document.createDocumentFragment();
-
   if (!items.length) {
     const empty = document.createElement('div');
     empty.className = 'gal-empty';
-    const m = {
-      spotlight: 'No Spotlight images found',
-      favorites: 'No favourites yet — click the star on any image',
-      albums: 'This folder is empty'
-    };
-    empty.textContent = m[S.view] || 'No images';
+    const m = { spotlight: 'No Spotlight images found', favorites: 'No favourites yet — click the star on any image', albums: 'This folder is empty' };
+    empty.textContent = m[S.galleryMode] || 'No images';
     frag.appendChild(empty);
   } else {
     items.forEach(w => frag.appendChild(makeCard(w)));
@@ -347,7 +424,7 @@ function makeCard(w) {
       w.favorite = !w.favorite;
       favBtn.innerHTML = w.favorite ? '&#9733;' : '&#9734;';
       favBtn.classList.toggle('fav-on', w.favorite);
-      if (S.view === 'favorites' && !w.favorite) removeCard(card);
+      if (S.galleryMode === 'favorites' && !w.favorite) removeCard(card);
     } catch {}
   };
 
@@ -356,8 +433,7 @@ function makeCard(w) {
   setBtn.textContent = 'Set';
   setBtn.onclick = async e => {
     e.stopPropagation();
-    setBtn.disabled = true;
-    setBtn.textContent = '...';
+    setBtn.disabled = true; setBtn.textContent = '...';
     try {
       await window.wp.setWallpaper(w.path);
       toast('Wallpaper set!');
@@ -365,8 +441,7 @@ function makeCard(w) {
       toast('Failed to set wallpaper', 'error');
       console.error(err);
     } finally {
-      setBtn.disabled = false;
-      setBtn.textContent = 'Set';
+      setBtn.disabled = false; setBtn.textContent = 'Set';
     }
   };
 
@@ -375,7 +450,7 @@ function makeCard(w) {
   moreBtn.textContent = '\u22EE';
   moreBtn.title = 'Options';
   moreBtn.onclick = e => {
-    showCtxMenu(e, { w, card, favBtn, isFav: S.view === 'favorites', isSpot: S.view === 'spotlight' });
+    showCtxMenu(e, { w, card, favBtn, isFav: S.galleryMode === 'favorites', isSpot: S.galleryMode === 'spotlight' });
   };
 
   bar.appendChild(favBtn);
@@ -395,12 +470,84 @@ function removeCard(card) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Slideshow UI helpers
+// ─────────────────────────────────────────────────────────────────────────────
+function updateSlideshowUI() {
+  const dot  = $('ss-dot');
+  const txt  = $('ss-status-text');
+  const startBtn = $('btn-ss-start');
+  const stopBtn  = $('btn-ss-stop');
+  if (S.slideshowRunning) {
+    dot.classList.add('running');
+    txt.textContent = 'Slideshow is running';
+    startBtn.style.display = 'none';
+    stopBtn.style.display  = 'inline-flex';
+  } else {
+    dot.classList.remove('running');
+    txt.textContent = 'Slideshow is stopped';
+    startBtn.style.display = 'inline-flex';
+    stopBtn.style.display  = 'none';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings UI wiring (called once on DOMContentLoaded)
+// ─────────────────────────────────────────────────────────────────────────────
+function initSettingsUI() {
+  // Build accent swatches
+  const container = $('swatches');
+  ACCENTS.forEach(({ name, hex, dark }) => {
+    const btn = document.createElement('button');
+    btn.className = 'swatch';
+    btn.style.background = hex;
+    btn.title = name;
+    btn.dataset.hex  = hex;
+    btn.dataset.dark = dark;
+    btn.onclick = () => {
+      container.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      // Live preview
+      document.documentElement.style.setProperty('--c-acc',  hex);
+      document.documentElement.style.setProperty('--c-acc2', dark);
+    };
+    container.appendChild(btn);
+  });
+
+  // Theme live preview
+  $('sel-theme').addEventListener('change', e => {
+    if (e.target.value === 'light') document.documentElement.dataset.theme = 'light';
+    else delete document.documentElement.dataset.theme;
+  });
+
+  // HW accel notice
+  $('chk-hw').addEventListener('change', () => {
+    const origHw = S.settingsSnapshot ? S.settingsSnapshot.hardwareAcceleration === true : false;
+    $('hw-notice').classList.toggle('on', $('chk-hw').checked !== origHw);
+  });
+
+  // Save
+  $('btn-settings-save').onclick = async () => {
+    const next = collectSettingsUI(S.settingsSnapshot || {});
+    try {
+      await window.wp.saveAppSettings(next);
+      S.settingsSnapshot = next;
+      applySettings(next);
+      toast('Settings saved');
+    } catch { toast('Failed to save settings', 'error'); }
+  };
+
+  // Discard — re-apply snapshot and repopulate controls
+  $('btn-settings-discard').onclick = () => {
+    if (S.settingsSnapshot) {
+      applySettings(S.settingsSnapshot);
+      populateSettingsUI(S.settingsSnapshot);
+    }
+    toast('Changes discarded');
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Discover / Unsplash
-// Unsplash API compliance:
-//   - Photos are hotlinked to original Unsplash URLs (not re-hosted)
-//   - Download endpoint is triggered when a photo is saved
-//   - Photographer name and "on Unsplash" are always attributed
-//   - App does not use Unsplash branding/logo
 // ─────────────────────────────────────────────────────────────────────────────
 async function fetchUnsplash(q, topic, page) {
   if (!S.unsplashKey) return null;
@@ -425,10 +572,8 @@ function makeDiscCard(photo) {
   const img = document.createElement('img');
   img.className = 'disc-thumb';
   img.alt = photo.alt_description || '';
-  // Hotlink to Unsplash small URL (API compliance: must use Unsplash URLs, not download)
   img.dataset.src = photo.urls.small;
   img.onclick = () => {
-    // Attribution shown in lightbox credit: "Photo by Name on Unsplash"
     const creditHtml = `Photo by <a href="${photo.user.links.html}?utm_source=wallpaper_studio&utm_medium=referral" target="_blank" style="color:rgba(255,255,255,.8)">${photo.user.name}</a> on <a href="https://unsplash.com/?utm_source=wallpaper_studio&utm_medium=referral" target="_blank" style="color:rgba(255,255,255,.8)">Unsplash</a>`;
     openLightbox(photo.urls.full || photo.urls.regular, creditHtml);
   };
@@ -436,7 +581,6 @@ function makeDiscCard(photo) {
   const over = document.createElement('div');
   over.className = 'disc-over';
 
-  // Attribution: photographer name + Unsplash link (required by Unsplash API guidelines)
   const credit = document.createElement('div');
   credit.className = 'disc-credit';
   credit.innerHTML = `<a href="${photo.user.links.html}?utm_source=wallpaper_studio&utm_medium=referral" target="_blank" style="color:inherit;text-decoration:none">${photo.user.name}</a> on Unsplash`;
@@ -444,7 +588,6 @@ function makeDiscCard(photo) {
   const rowBtns = document.createElement('div');
   rowBtns.style.cssText = 'display:flex;gap:6px;align-items:center;';
 
-  // Small "View on Unsplash" link button
   const viewBtn = document.createElement('a');
   viewBtn.className = 'disc-view-btn';
   viewBtn.href = `${photo.links.html}?utm_source=wallpaper_studio&utm_medium=referral`;
@@ -463,7 +606,6 @@ function makeDiscCard(photo) {
       if (!S.albums?.length) { toast('Add a local folder first', 'error'); saveBtn.disabled = false; saveBtn.textContent = 'Save'; return; }
       const dest = S.albums.length === 1 ? S.albums[0] : await pickAlbum(S.albums);
       if (!dest) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; return; }
-      // Pass download_location so main process triggers the Unsplash download event
       await window.wp.downloadImageUrl(photo.urls.full, photo.id + '.jpg', dest.id, photo.links.download_location);
       saveBtn.textContent = 'Saved';
       saveBtn.style.cssText = 'background:#22c55e;color:#fff';
@@ -476,7 +618,6 @@ function makeDiscCard(photo) {
 
   rowBtns.appendChild(viewBtn);
   rowBtns.appendChild(saveBtn);
-
   over.appendChild(credit);
   over.appendChild(rowBtns);
   card.appendChild(img);
@@ -490,7 +631,6 @@ async function loadDiscover(more = false) {
 
   const grid    = $('disc-grid');
   const moreBtn = $('disc-more');
-
   if (moreBtn) moreBtn.style.display = 'none';
 
   if (!more) {
@@ -506,7 +646,6 @@ async function loadDiscover(more = false) {
   const photos = await fetchUnsplash(q, topic, S.unsplashPage);
 
   if (!more) grid.innerHTML = '';
-
   if (!photos || photos.length === 0) {
     if (!more) grid.innerHTML = '<div class="disc-empty">No results. Try a different search.</div>';
   } else {
@@ -521,14 +660,11 @@ async function loadDiscover(more = false) {
 }
 
 function initDiscover() {
-  // Discover section uses embedded API key from environment — no user input required
-  // The setup screen is hidden if the key is available
   if (S.unsplashKey) {
     $('disc-setup').style.display = 'none';
     $('disc-main').style.display  = 'block';
   }
 
-  // Chips
   const chipsEl = $('disc-chips');
   CATS.forEach((cat, i) => {
     const b = document.createElement('button');
@@ -545,31 +681,26 @@ function initDiscover() {
     chipsEl.appendChild(b);
   });
 
-  // Search
   const si = $('disc-search-in');
   const sb = $('disc-search-btn');
   const doSearch = () => {
-    const q = si.value.trim();
-    S.unsplashQuery = q;
-    if (q) chipsEl.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+    S.unsplashQuery = si.value.trim();
+    if (S.unsplashQuery) chipsEl.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     loadDiscover();
   };
   sb.onclick = doSearch;
   si.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
-
   $('disc-more').onclick = () => loadDiscover(true);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DOMContentLoaded
+// DOMContentLoaded — wire everything up
 // ─────────────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
 
+  // Cache DOM
   Object.assign(D, {
     gallery:      $('gallery'),
-    galleryWrap:  $('gallery-wrap'),
-    discoverWrap: $('discover-wrap'),
-    emptyState:   $('empty-state'),
     foldersList:  $('folders-list'),
     lightbox:     $('lightbox'),
     lbImg:        $('lb-img'),
@@ -585,45 +716,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     detDims:      $('det-dims'),
     detSize:      $('det-size'),
     detDate:      $('det-date'),
-    btnAddLocal:  $('btn-add-local'),
-    btnSlideshow: $('btn-slideshow'),
   });
 
-  // Load app settings and apply — body is hidden until this resolves to prevent
-  // a flash of default theme/accent before user prefs are applied.
+  // ── Load settings + apply before revealing body ──
   try {
     const settings = await window.wp.getAppSettings();
     applySettings(settings);
-  } catch {
-    // settings failed — still must show the body
-  } finally {
+    S.settingsSnapshot = settings;
+  } catch {}
+  finally {
     document.body.style.visibility = '';
   }
 
-  // Load embedded Unsplash key (from env var set by developer)
-  try {
-    S.unsplashKey = await window.wp.getUnsplashKey() || '';
-  } catch {}
+  // ── Unsplash key ──
+  try { S.unsplashKey = await window.wp.getUnsplashKey() || ''; } catch {}
 
-  // Listen for live settings updates
-  window.wp.onSettingsUpdated(settings => applySettings(settings));
+  // ── Live settings updates from main process ──
+  window.wp.onSettingsUpdated(settings => { applySettings(settings); S.settingsSnapshot = settings; });
 
-  // Lightbox
-  $('lb-close').onclick = closeLightbox;
-  D.lightbox.addEventListener('click', e => { if (e.target === D.lightbox) closeLightbox(); });
-
-  // ESC closes everything
+  // ── Global keyboard shortcuts ──
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { closeLightbox(); closeDetails(); hideCtxMenu(); D.apModal.classList.remove('on'); }
   });
 
-  // Context menu
+  // ── Lightbox ──
+  $('lb-close').onclick = closeLightbox;
+  D.lightbox.addEventListener('click', e => { if (e.target === D.lightbox) closeLightbox(); });
+
+  // ── Context menu ──
   $('ctx-copy').onclick    = ctxCopy;
   $('ctx-delete').onclick  = ctxDelete;
   $('ctx-details').onclick = ctxDetails;
   $('ctx-unfav').onclick   = ctxUnfav;
 
-  // Details panel
+  // ── Details panel ──
   $('det-close').onclick = closeDetails;
   $('det-set').onclick   = async () => { await window.wp.setWallpaper(_detPath); toast('Wallpaper set!'); };
   $('det-copy').onclick  = async () => {
@@ -634,15 +760,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     catch { toast('Copy failed', 'error'); }
   };
 
-  // Sidebar static nav
-  $('nav-spot').onclick = () => navigateTo('spotlight');
-  $('nav-fav').onclick  = () => navigateTo('favorites');
-  $('nav-disc').onclick = () => navigateTo('discover');
+  // ── Sidebar static nav ──
+  $('nav-spot').onclick      = () => navigateTo('gallery', 'spotlight');
+  $('nav-fav').onclick       = () => navigateTo('gallery', 'favorites');
+  $('nav-disc').onclick      = () => navigateTo('discover');
+  $('nav-settings').onclick  = () => navigateTo('settings');
+  $('nav-slideshow').onclick = () => navigateTo('slideshow');
 
-  // Settings button
-  $('btn-settings').onclick = () => window.wp.openSettings();
+  // ── Topbar ──
+  $('btn-add-local').onclick = async () => {
+    const e = await window.wp.openFile();
+    if (e && S.view === 'gallery') renderGallery();
+  };
 
-  // Add folder
+  // ── Add folder (sidebar + empty state) ──
   const addFolder = async () => {
     try {
       const folder = await window.wp.selectAlbumFolder();
@@ -653,28 +784,48 @@ document.addEventListener('DOMContentLoaded', async () => {
       S.albums = await window.wp.getAlbums() || [];
       buildFoldersList();
       const added = S.albums.find(a => a.folder === folder);
-      if (added) await navigateTo('albums', added.id);
+      if (added) await navigateTo('gallery', 'albums', added.id);
     } catch (err) { toast('Failed: ' + err.message, 'error'); }
   };
   $('btn-add-folder').onclick   = addFolder;
   $('empty-add-folder').onclick = addFolder;
 
-  // Top-bar
-  D.btnAddLocal.onclick  = async () => { const e = await window.wp.openFile(); if (e) renderGallery(); };
-  D.btnSlideshow.onclick = async () => { if (window.wp.openSlideshowConfig) await window.wp.openSlideshowConfig(); };
+  // ── Settings UI ──
+  initSettingsUI();
 
-  // Discover
+  // ── Slideshow controls ──
+  $('btn-ss-start').onclick = async () => {
+    const intervalMs = parseInt($('ss-sel-interval').value, 10) || 60000;
+    // Save interval to settings
+    try {
+      const cfg = await window.wp.getAppSettings();
+      await window.wp.saveAppSettings({ ...cfg, slideshowInterval: intervalMs });
+    } catch {}
+    window.wp.startSlideshow(intervalMs);
+    S.slideshowRunning = true;
+    updateSlideshowUI();
+    toast('Slideshow started');
+  };
+  $('btn-ss-stop').onclick = () => {
+    window.wp.stopSlideshow();
+    S.slideshowRunning = false;
+    updateSlideshowUI();
+    toast('Slideshow stopped');
+  };
+
+  // ── Discover ──
   initDiscover();
 
-  // Load albums → initial view
+  // ── IPC refresh (after settings change etc.) ──
+  if (window.wp.onRefresh) window.wp.onRefresh(() => { if (S.view === 'gallery') renderGallery(); });
+
+  // ── Initial load ──
   S.albums = await window.wp.getAlbums() || [];
   buildFoldersList();
-  if (S.albums.length === 0) await navigateTo('empty');
-  else { S.currentAlbumId = S.albums[0].id; await navigateTo('albums', S.albums[0].id); }
-
-  // Auto-load discover if key is available and user clicks Discover first run
-  if (S.unsplashKey) S.discoverReady = false; // will load on navigate
-
-  // IPC refresh
-  if (window.wp.onRefresh) window.wp.onRefresh(() => renderGallery());
+  if (S.albums.length === 0) {
+    await navigateTo('empty');
+  } else {
+    S.currentAlbumId = S.albums[0].id;
+    await navigateTo('gallery', 'albums', S.albums[0].id);
+  }
 });

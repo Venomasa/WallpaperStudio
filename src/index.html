@@ -8,40 +8,40 @@
    DESIGN TOKENS
 ═══════════════════════════════════════════════════════════ */
 :root {
-  --c-bg0:   #0d0d10;
-  --c-bg1:   #141418;
-  --c-bg2:   #1a1a20;
-  --c-bg3:   #22222a;
-  --c-border:#2c2c36;
-  --c-bord2: #3a3a46;
-  --c-txt:   #f0f0f4;
-  --c-txt2:  #9090a0;
-  --c-txt3:  #606070;
-  --c-acc:   #6366f1;
-  --c-acc2:  #4f46e5;
-  --c-red:   #ef4444;
-  --c-grn:   #22c55e;
-  --r:       10px;
-  --r-sm:    7px;
-  --trans:   0.18s ease;
-  --shadow:  0 4px 16px rgba(0,0,0,.45);
+  --c-bg0:    #0d0d10;
+  --c-bg1:    #141418;
+  --c-bg2:    #1a1a20;
+  --c-bg3:    #22222a;
+  --c-border: #2c2c36;
+  --c-bord2:  #3a3a46;
+  --c-txt:    #f0f0f4;
+  --c-txt2:   #9090a0;
+  --c-txt3:   #606070;
+  --c-acc:    #6366f1;
+  --c-acc2:   #4f46e5;
+  --c-red:    #ef4444;
+  --c-grn:    #22c55e;
+  --r:        10px;
+  --r-sm:     7px;
+  --trans:    0.18s ease;
+  --shadow:   0 4px 16px rgba(0,0,0,.45);
   --shadow-lg:0 12px 40px rgba(0,0,0,.65);
-  --thumb-min: 210px;
-  --thumb-h:   138px;
+  --topbar-h: 54px;
+  --sidebar-w:248px;
+  --thumb-min:210px;
+  --thumb-h:  138px;
 }
-
-/* Light mode */
 [data-theme="light"] {
-  --c-bg0:   #f5f5f7;
-  --c-bg1:   #ffffff;
-  --c-bg2:   #ebebef;
-  --c-bg3:   #dddde5;
-  --c-border:#d0d0dc;
-  --c-bord2: #b8b8c8;
-  --c-txt:   #111118;
-  --c-txt2:  #44445a;
-  --c-txt3:  #808090;
-  --shadow:  0 4px 16px rgba(0,0,0,.12);
+  --c-bg0:    #f5f5f7;
+  --c-bg1:    #ffffff;
+  --c-bg2:    #ebebef;
+  --c-bg3:    #dddde5;
+  --c-border: #d0d0dc;
+  --c-bord2:  #b8b8c8;
+  --c-txt:    #111118;
+  --c-txt2:   #44445a;
+  --c-txt3:   #808090;
+  --shadow:   0 4px 16px rgba(0,0,0,.12);
   --shadow-lg:0 12px 40px rgba(0,0,0,.20);
 }
 
@@ -49,14 +49,102 @@
    RESET & BASE
 ═══════════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
 body {
   font-family: 'Segoe UI', system-ui, sans-serif;
   background: var(--c-bg0); color: var(--c-txt);
-  min-height: 100vh; display: flex; flex-direction: column;
-  font-size: 13px;
+  font-size: 13px; display: flex; flex-direction: column;
 }
 img { display: block; }
-a { color: inherit; }
+a   { color: inherit; }
+
+/* ═══════════════════════════════════════════════════════════
+   APP SHELL
+═══════════════════════════════════════════════════════════ */
+#app-shell { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+
+/* ── Topbar ── */
+#topbar {
+  flex-shrink: 0; height: var(--topbar-h);
+  background: rgba(20,20,24,.96); backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--c-border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 16px; gap: 12px; z-index: 100;
+}
+[data-theme="light"] #topbar { background: rgba(255,255,255,.96); }
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.logo-img { width: 28px; height: 28px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.logo-text {
+  font-size: 15px; font-weight: 700; letter-spacing: -.3px;
+  background: linear-gradient(135deg, #6366f1, #a78bfa);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.tb-actions { display: flex; gap: 8px; align-items: center; }
+.tb-actions button { padding: 7px 12px; font-size: 12px; }
+
+/* ── Body row ── */
+#body-row {
+  flex: 1; display: flex;
+  min-height: 0; /* critical: allow children to shrink */
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════════════════ */
+#sidebar {
+  flex-shrink: 0; width: var(--sidebar-w);
+  background: var(--c-bg1); border-right: 1px solid var(--c-border);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.sb-section  { padding: 10px 10px 4px; }
+.sb-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--c-txt3); padding: 6px 8px 4px;
+}
+.sb-divider { height: 1px; background: var(--c-border); margin: 4px 12px 6px; }
+#folders-list { flex: 1; overflow-y: auto; padding: 0 10px 10px; min-height: 0; }
+#btn-add-folder { margin: 8px; width: calc(100% - 16px); justify-content: center; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  cursor: pointer; color: var(--c-txt2);
+  transition: background var(--trans), color var(--trans);
+  margin-bottom: 2px; user-select: none;
+}
+.nav-item:hover  { background: var(--c-bg3); color: var(--c-txt); }
+.nav-item.active { background: var(--c-acc); color: #fff; font-weight: 600; }
+.nav-icon { font-size: 15px; flex-shrink: 0; }
+.folder-item { position: relative; }
+.folder-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-del {
+  opacity: 0; background: transparent; border: none;
+  color: var(--c-txt3); padding: 2px 5px; font-size: 11px;
+  border-radius: 4px; transition: opacity var(--trans); flex-shrink: 0;
+}
+.folder-item:hover .folder-del { opacity: 1; }
+.folder-del:hover { background: rgba(239,68,68,.15); color: var(--c-red) !important; }
+.nav-item.active .folder-del { color: rgba(255,255,255,.5); }
+
+/* ═══════════════════════════════════════════════════════════
+   CONTENT AREA
+═══════════════════════════════════════════════════════════ */
+#content {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; min-width: 0; position: relative;
+}
+
+.view {
+  display: none; flex-direction: column;
+  flex: 1; overflow: hidden; min-height: 0;
+}
+.view.active { display: flex; }
+
+.view-scroll {
+  flex: 1; overflow-y: auto; overflow-x: hidden;
+  min-height: 0; padding: 22px;
+}
 
 /* ═══════════════════════════════════════════════════════════
    BUTTON SYSTEM
@@ -67,105 +155,41 @@ button {
   border: 1px solid var(--c-border);
   border-radius: var(--r-sm); padding: 8px 14px;
   font: inherit; font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: background var(--trans), border-color var(--trans), transform var(--trans);
+  cursor: pointer;
+  transition: background var(--trans), border-color var(--trans), transform var(--trans);
   white-space: nowrap;
 }
 button:hover  { background: var(--c-bord2); border-color: var(--c-bord2); }
 button:active { transform: scale(.97); }
-.btn-primary  { background: var(--c-acc); border-color: var(--c-acc); color: #fff; }
+.btn-primary { background: var(--c-acc); border-color: var(--c-acc); color: #fff; }
 .btn-primary:hover { background: var(--c-acc2); border-color: var(--c-acc2); }
-.btn-ghost    { background: transparent; border-color: transparent; color: var(--c-txt2); }
+.btn-ghost   { background: transparent; border-color: transparent; color: var(--c-txt2); }
 .btn-ghost:hover { background: var(--c-bg3); color: var(--c-txt); border-color: transparent; }
-.btn-danger   { color: var(--c-red); }
+.btn-danger  { color: var(--c-red); }
 .btn-danger:hover { background: rgba(239,68,68,.12); }
+.btn-icon {
+  background: transparent; border: 1px solid transparent;
+  padding: 5px 8px; font-size: 14px; color: var(--c-txt2);
+  border-radius: var(--r-sm);
+}
+.btn-icon:hover { background: var(--c-bg3); color: var(--c-txt); border-color: var(--c-border); }
+.btn-icon.fav-on { color: #f59e0b; }
 
 /* ═══════════════════════════════════════════════════════════
-   LAYOUT
+   EMPTY STATE VIEW
 ═══════════════════════════════════════════════════════════ */
-#topbar {
-  position: fixed; top: 0; left: 0; right: 0; height: 54px; z-index: 200;
-  background: rgba(20,20,24,.96); backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--c-border);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 16px; gap: 12px;
+#view-empty .view-scroll {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; gap: 12px;
 }
-[data-theme="light"] #topbar { background: rgba(255,255,255,.96); }
-
-.topbar-left { display: flex; align-items: center; gap: 10px; }
-.logo-img {
-  width: 28px; height: 28px; border-radius: 8px;
-  object-fit: cover; flex-shrink: 0;
-}
-.logo-text {
-  font-size: 15px; font-weight: 700; letter-spacing: -.3px;
-  background: linear-gradient(135deg,#6366f1,#a78bfa);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
-#topbar .tb-actions { display: flex; gap: 8px; align-items: center; }
-#topbar .tb-actions button { padding: 7px 12px; font-size: 12px; }
-#btn-settings {
-  background: transparent; border-color: transparent;
-  color: var(--c-txt2); padding: 7px 10px; font-size: 16px;
-}
-#btn-settings:hover { background: var(--c-bg3); color: var(--c-txt); }
-
-#sidebar {
-  position: fixed; left: 0; top: 54px; bottom: 0; width: 248px; z-index: 100;
-  background: var(--c-bg1); border-right: 1px solid var(--c-border);
-  display: flex; flex-direction: column; overflow: hidden;
-}
-.sb-section { padding: 10px 10px 4px; }
-.sb-label {
-  font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .6px; color: var(--c-txt3); padding: 6px 8px 4px;
-}
-.sb-divider { height: 1px; background: var(--c-border); margin: 4px 12px 6px; }
-#folders-list { flex: 1; overflow-y: auto; padding: 0 10px 10px; }
-#btn-add-folder { margin: 8px; width: calc(100% - 16px); justify-content: center; }
-
-.nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 10px; border-radius: var(--r-sm);
-  cursor: pointer; color: var(--c-txt2);
-  transition: background var(--trans), color var(--trans);
-  margin-bottom: 2px;
-}
-.nav-item:hover { background: var(--c-bg3); color: var(--c-txt); }
-.nav-item.active { background: var(--c-acc); color: #fff; font-weight: 600; }
-.nav-item .nav-icon { font-size: 15px; flex-shrink: 0; }
-
-.folder-item { position: relative; }
-.folder-name  { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.folder-del   {
-  opacity: 0; background: transparent; border: none; color: var(--c-txt3);
-  padding: 2px 5px; font-size: 11px; border-radius: 4px;
-  transition: opacity var(--trans);
-}
-.folder-item:hover .folder-del  { opacity: 1; }
-.folder-del:hover { background: rgba(239,68,68,.15); color: var(--c-red) !important; }
-.nav-item.active .folder-del { color: rgba(255,255,255,.5); }
-
-#main {
-  margin-left: 248px; margin-top: 54px;
-  padding: 22px; min-height: calc(100vh - 54px);
-}
-
-/* ═══════════════════════════════════════════════════════════
-   EMPTY STATE
-═══════════════════════════════════════════════════════════ */
-#empty-state {
-  display: none; flex-direction: column; align-items: center;
-  justify-content: center; text-align: center;
-  min-height: 60vh; gap: 12px;
-}
-#empty-state .es-icon { font-size: 56px; opacity: .35; }
-#empty-state h2 { font-size: 20px; font-weight: 600; color: var(--c-txt2); }
-#empty-state p  { color: var(--c-txt3); max-width: 320px; line-height: 1.6; }
+.es-icon  { font-size: 56px; opacity: .35; }
+.es-title { font-size: 20px; font-weight: 600; color: var(--c-txt2); }
+.es-desc  { color: var(--c-txt3); max-width: 320px; line-height: 1.6; }
 
 /* ═══════════════════════════════════════════════════════════
    GALLERY
 ═══════════════════════════════════════════════════════════ */
-#gallery-wrap { display: none; }
 #gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--thumb-min), 1fr));
@@ -175,7 +199,6 @@ button:active { transform: scale(.97); }
   grid-column: 1/-1; text-align: center; padding: 60px 20px;
   color: var(--c-txt3); line-height: 2; font-size: 14px;
 }
-
 .card {
   background: var(--c-bg2); border: 1px solid var(--c-border);
   border-radius: var(--r); overflow: hidden;
@@ -189,35 +212,223 @@ button:active { transform: scale(.97); }
   0%   { background-position: -400px 0; }
   100% { background-position:  400px 0; }
 }
-
 .thumb {
   width: 100%; height: var(--thumb-h); object-fit: cover;
-  cursor: zoom-in;
-  transition: transform .22s ease, opacity .18s ease;
+  cursor: zoom-in; transition: transform .22s ease;
   background: var(--c-bg3);
   background-image: linear-gradient(90deg, var(--c-bg3) 25%, var(--c-bg2) 50%, var(--c-bg3) 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
+  background-size: 800px 100%; animation: shimmer 1.4s ease-in-out infinite;
 }
 .thumb.loaded { background-image: none; animation: none; }
 .card:hover .thumb { transform: scale(1.03); }
-
-.card-bar {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px;
-}
-.btn-icon {
-  background: transparent; border: 1px solid transparent;
-  padding: 5px 8px; font-size: 14px; color: var(--c-txt2);
-  border-radius: var(--r-sm);
-}
-.btn-icon:hover { background: var(--c-bg3); color: var(--c-txt); border-color: var(--c-border); }
-.btn-icon.fav-on { color: #f59e0b; }
-.btn-set {
-  flex: 1; justify-content: center; padding: 6px 8px;
-  font-size: 12px; font-weight: 600;
-}
+.card-bar { display: flex; align-items: center; gap: 6px; padding: 8px; }
+.btn-set { flex: 1; justify-content: center; padding: 6px 8px; font-size: 12px; font-weight: 600; }
 .btn-more { margin-left: auto; }
+
+/* ═══════════════════════════════════════════════════════════
+   DISCOVER VIEW
+═══════════════════════════════════════════════════════════ */
+#disc-setup {
+  max-width: 440px; margin: 60px auto; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+}
+#disc-setup .ds-icon { font-size: 48px; opacity: .5; }
+#disc-setup h2 { font-size: 20px; font-weight: 600; }
+#disc-setup p  { color: var(--c-txt3); line-height: 1.6; }
+.disc-no-key {
+  background: var(--c-bg2); border: 1px solid var(--c-border);
+  border-radius: var(--r); padding: 16px 20px;
+  color: var(--c-txt3); font-size: 13px; line-height: 1.6;
+}
+.disc-no-key strong { color: var(--c-txt2); }
+#disc-main { display: none; }
+.disc-toolbar {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.disc-search { display: flex; flex: 1; gap: 8px; min-width: 180px; }
+.disc-search input {
+  flex: 1; background: var(--c-bg2); border: 1px solid var(--c-border);
+  border-radius: var(--r-sm); padding: 9px 13px;
+  color: var(--c-txt); font: inherit; outline: none;
+}
+.disc-search input:focus { border-color: var(--c-acc); }
+#disc-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.chip {
+  background: var(--c-bg2); border: 1px solid var(--c-border);
+  border-radius: 20px; padding: 5px 13px;
+  font-size: 12px; color: var(--c-txt2); cursor: pointer; white-space: nowrap;
+}
+.chip:hover  { border-color: var(--c-acc); color: var(--c-txt); }
+.chip.active { background: var(--c-acc); border-color: var(--c-acc); color: #fff; font-weight: 600; }
+#disc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 13px; margin-bottom: 24px;
+}
+.disc-card {
+  position: relative; border-radius: var(--r); overflow: hidden;
+  aspect-ratio: 16/10; background: var(--c-bg2); border: 1px solid var(--c-border);
+  transition: transform .22s ease, box-shadow .22s ease;
+  cursor: pointer; contain: layout style paint;
+}
+.disc-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.disc-card:hover .disc-over { opacity: 1; }
+.disc-thumb {
+  width: 100%; height: 100%; object-fit: cover; transition: transform .3s ease;
+  background: var(--c-bg3);
+  background-image: linear-gradient(90deg, var(--c-bg3) 25%, var(--c-bg2) 50%, var(--c-bg3) 75%);
+  background-size: 800px 100%; animation: shimmer 1.4s ease-in-out infinite;
+}
+.disc-thumb.loaded { background-image: none; animation: none; }
+.disc-card:hover .disc-thumb { transform: scale(1.04); }
+.disc-over {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,.78) 0%, transparent 52%);
+  opacity: 0; transition: opacity .22s ease;
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 10px;
+}
+.disc-credit { font-size: 11px; color: rgba(255,255,255,.75); margin-bottom: 7px; line-height: 1.4; }
+.disc-save {
+  background: var(--c-acc); border: none; border-radius: var(--r-sm);
+  color: #fff; padding: 6px 12px; font-size: 12px; font-weight: 600;
+  cursor: pointer; width: fit-content; transition: background var(--trans);
+}
+.disc-save:hover    { background: var(--c-acc2); }
+.disc-save:disabled { opacity: .6; cursor: not-allowed; }
+.disc-view-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; background: rgba(255,255,255,.15);
+  border-radius: var(--r-sm); color: rgba(255,255,255,.9);
+  text-decoration: none; flex-shrink: 0;
+  transition: background .15s; border: 1px solid rgba(255,255,255,.2);
+}
+.disc-view-btn:hover { background: rgba(255,255,255,.28); color: #fff; }
+.disc-loading, .disc-empty {
+  grid-column: 1/-1; text-align: center; padding: 60px 20px;
+  color: var(--c-txt3); font-size: 14px; line-height: 2;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.disc-loading { animation: pulse 1.4s ease-in-out infinite; }
+#disc-more { display: none; margin: 0 auto 24px; justify-content: center; padding: 10px 28px; }
+
+/* ═══════════════════════════════════════════════════════════
+   SETTINGS VIEW
+═══════════════════════════════════════════════════════════ */
+.settings-wrap { max-width: 640px; }
+.settings-heading {
+  font-size: 20px; font-weight: 700;
+  background: linear-gradient(135deg, var(--c-acc), #a78bfa);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 4px;
+}
+.settings-sub { color: var(--c-txt3); font-size: 12px; margin-bottom: 22px; }
+.settings-section {
+  background: var(--c-bg1); border: 1px solid var(--c-border);
+  border-radius: var(--r); overflow: hidden; margin-bottom: 14px;
+}
+.settings-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px;
+  color: var(--c-txt3); padding: 8px 16px 7px;
+  border-bottom: 1px solid var(--c-border); background: var(--c-bg2);
+}
+
+/* ── SettingRow component ── */
+.setting-row {
+  display: flex; align-items: center; flex-wrap: wrap;
+  padding: 13px 16px; gap: 12px 16px;
+  border-bottom: 1px solid var(--c-border); min-height: 56px;
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-info { flex: 1 1 180px; min-width: 0; }
+.setting-label { font-weight: 500; font-size: 13px; color: var(--c-txt); }
+.setting-desc  { font-size: 11px; color: var(--c-txt3); margin-top: 2px; line-height: 1.4; }
+.setting-ctrl  { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+
+.setting-notice {
+  display: none; font-size: 11px; color: #fbbf24;
+  background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.3);
+  border-radius: var(--r-sm); padding: 7px 14px; margin: 0 16px 10px;
+}
+.setting-notice.on { display: block; }
+
+/* Toggle */
+.tog { position: relative; width: 42px; height: 24px; flex-shrink: 0; cursor: pointer; }
+.tog input { opacity: 0; width: 0; height: 0; position: absolute; }
+.tog-track {
+  position: absolute; inset: 0; background: var(--c-bg3);
+  border: 1px solid var(--c-border); border-radius: 24px;
+  transition: background .2s, border-color .2s;
+}
+.tog-thumb {
+  position: absolute; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--c-txt3); top: 2px; left: 2px;
+  transition: transform .2s, background .2s;
+}
+.tog input:checked ~ .tog-track { background: var(--c-acc); border-color: var(--c-acc); }
+.tog input:checked ~ .tog-thumb { transform: translateX(18px); background: #fff; }
+
+/* Select */
+.sel {
+  background: var(--c-bg2); color: var(--c-txt); border: 1px solid var(--c-border);
+  border-radius: var(--r-sm); padding: 7px 10px;
+  font: inherit; font-size: 12px; outline: none;
+  cursor: pointer; min-width: 130px; flex-shrink: 0;
+}
+.sel:focus { border-color: var(--c-acc); }
+.sel option { background: var(--c-bg2); }
+
+/* Accent swatches */
+.swatches { display: flex; gap: 7px; flex-wrap: wrap; flex-shrink: 0; }
+.swatch {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid transparent; cursor: pointer;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+  outline: none; padding: 0; flex-shrink: 0;
+}
+.swatch:hover  { transform: scale(1.18); box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.swatch.active { border-color: var(--c-txt); transform: scale(1.1); box-shadow: 0 0 0 3px rgba(255,255,255,.15); }
+
+/* Settings sticky footer */
+.settings-footer {
+  flex-shrink: 0; display: flex; align-items: center; gap: 10px;
+  padding: 12px 22px;
+  background: var(--c-bg1); border-top: 1px solid var(--c-border);
+}
+.settings-footer .spacer { flex: 1; }
+
+/* ═══════════════════════════════════════════════════════════
+   SLIDESHOW VIEW
+═══════════════════════════════════════════════════════════ */
+.slideshow-wrap { max-width: 560px; }
+.slideshow-heading {
+  font-size: 20px; font-weight: 700;
+  background: linear-gradient(135deg, var(--c-acc), #a78bfa);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 4px;
+}
+.slideshow-sub { color: var(--c-txt3); font-size: 12px; margin-bottom: 22px; }
+.slideshow-status {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--c-bg1); border: 1px solid var(--c-border);
+  border-radius: var(--r); padding: 14px 18px; margin-bottom: 18px;
+}
+.ss-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--c-txt3); flex-shrink: 0; transition: background .3s;
+}
+.ss-dot.running { background: var(--c-grn); box-shadow: 0 0 8px rgba(34,197,94,.5); }
+.ss-status-text { flex: 1; font-size: 13px; color: var(--c-txt2); }
+.ss-ctrl-btns { display: flex; gap: 8px; flex-shrink: 0; }
+.slideshow-section {
+  background: var(--c-bg1); border: 1px solid var(--c-border);
+  border-radius: var(--r); overflow: hidden; margin-bottom: 14px;
+}
+.slideshow-section-title {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px;
+  color: var(--c-txt3); padding: 8px 16px 7px;
+  border-bottom: 1px solid var(--c-border); background: var(--c-bg2);
+}
 
 /* ═══════════════════════════════════════════════════════════
    CONTEXT MENU
@@ -231,13 +442,11 @@ button:active { transform: scale(.97); }
 }
 #ctx-menu.on { display: block; }
 #ctx-menu button {
-  width: 100%; justify-content: flex-start;
-  background: transparent; border: none;
-  padding: 9px 12px; border-radius: var(--r-sm);
-  color: var(--c-txt); font-size: 13px;
+  width: 100%; justify-content: flex-start; background: transparent; border: none;
+  padding: 9px 12px; border-radius: var(--r-sm); color: var(--c-txt); font-size: 13px;
 }
 #ctx-menu button:hover { background: var(--c-bg3); }
-#ctx-menu .ctx-sep { height: 1px; background: var(--c-border); margin: 4px 0; }
+.ctx-sep { height: 1px; background: var(--c-border); margin: 4px 0; }
 @keyframes pop { from { opacity:0; transform:scale(.94) } to { opacity:1; transform:scale(1) } }
 
 /* ═══════════════════════════════════════════════════════════
@@ -255,15 +464,12 @@ button:active { transform: scale(.97); }
   width: 340px; max-width: 92vw; box-shadow: var(--shadow-lg);
 }
 .modal-box h3 { font-size: 15px; margin-bottom: 4px; }
-.modal-sub { color: var(--c-txt3); font-size: 12px; margin-bottom: 14px; }
+.modal-sub    { color: var(--c-txt3); font-size: 12px; margin-bottom: 14px; }
 .ap-list {
   display: flex; flex-direction: column; gap: 5px;
   max-height: 240px; overflow-y: auto; margin-bottom: 14px;
 }
-.ap-item {
-  justify-content: flex-start; gap: 10px;
-  background: var(--c-bg3); border-color: var(--c-border);
-}
+.ap-item { justify-content: flex-start; gap: 10px; background: var(--c-bg3); border-color: var(--c-border); }
 .ap-item:hover { background: var(--c-acc); border-color: var(--c-acc); color: #fff; }
 .modal-foot { display: flex; justify-content: flex-end; }
 @keyframes fadeIn { from{opacity:0;transform:scale(.96)} to{opacity:1;transform:scale(1)} }
@@ -279,20 +485,14 @@ button:active { transform: scale(.97); }
 }
 #lightbox.on { display: flex; animation: fadeIn .2s ease; }
 #lb-img {
-  max-width: 90vw; max-height: 86vh;
-  object-fit: contain; border-radius: var(--r);
-  box-shadow: 0 20px 80px rgba(0,0,0,.9);
-  min-width: 200px; min-height: 120px;
-  background: var(--c-bg3);
+  max-width: 90vw; max-height: 86vh; object-fit: contain;
+  border-radius: var(--r); box-shadow: 0 20px 80px rgba(0,0,0,.9);
+  min-width: 200px; min-height: 120px; background: var(--c-bg3);
   background-image: linear-gradient(90deg, var(--c-bg3) 25%, var(--c-bg2) 50%, var(--c-bg3) 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
+  background-size: 800px 100%; animation: shimmer 1.4s ease-in-out infinite;
 }
 #lb-img.loaded { background-image: none; animation: none; }
-#lb-credit {
-  color: rgba(255,255,255,.55); font-size: 12px;
-  display: none;
-}
+#lb-credit { color: rgba(255,255,255,.55); font-size: 12px; display: none; }
 #lb-close {
   position: fixed; top: 16px; right: 16px;
   background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.15);
@@ -305,142 +505,32 @@ button:active { transform: scale(.97); }
    DETAILS PANEL
 ═══════════════════════════════════════════════════════════ */
 #det-panel {
-  position: fixed; top: 54px; right: 0; bottom: 0;
-  width: 300px; z-index: 300;
+  position: absolute; top: 0; right: 0; bottom: 0; width: 300px; z-index: 300;
   background: var(--c-bg1); border-left: 1px solid var(--c-border);
   display: flex; flex-direction: column;
-  transform: translateX(100%); transition: transform .25s cubic-bezier(.4,0,.2,1);
+  transform: translateX(100%);
+  transition: transform .25s cubic-bezier(.4,0,.2,1);
   box-shadow: -8px 0 32px rgba(0,0,0,.4);
 }
 #det-panel.on { transform: translateX(0); }
 #det-header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 16px 12px; border-bottom: 1px solid var(--c-border);
+  padding: 16px 16px 12px; border-bottom: 1px solid var(--c-border); flex-shrink: 0;
 }
 #det-header h3 { font-size: 14px; font-weight: 600; }
 #det-close { background: transparent; border: none; padding: 4px 8px; color: var(--c-txt2); font-size: 16px; }
-#det-img-wrap { padding: 14px 14px 0; }
+#det-img-wrap { padding: 14px 14px 0; flex-shrink: 0; }
 #det-img { width: 100%; border-radius: var(--r-sm); object-fit: cover; height: 150px; background: var(--c-bg3); }
-.det-meta { padding: 14px; display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; }
-.det-row { display: flex; flex-direction: column; gap: 2px; }
+.det-meta { padding: 14px; display: flex; flex-direction: column; gap: 10px; flex: 1; overflow-y: auto; min-height: 0; }
+.det-row  { display: flex; flex-direction: column; gap: 2px; }
 .det-label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--c-txt3); font-weight: 600; }
-.det-val { color: var(--c-txt2); font-size: 12px; word-break: break-all; }
-#det-name { font-size: 13px; font-weight: 600; color: var(--c-txt); }
-.det-actions { display: flex; gap: 8px; padding: 12px 14px 16px; border-top: 1px solid var(--c-border); }
+.det-val   { color: var(--c-txt2); font-size: 12px; word-break: break-all; }
+#det-name  { font-size: 13px; font-weight: 600; color: var(--c-txt); }
+.det-actions {
+  display: flex; gap: 8px; padding: 12px 14px 16px;
+  border-top: 1px solid var(--c-border); flex-shrink: 0;
+}
 .det-actions button { flex: 1; justify-content: center; font-size: 12px; padding: 8px; }
-
-/* ═══════════════════════════════════════════════════════════
-   DISCOVER
-═══════════════════════════════════════════════════════════ */
-#discover-wrap { display: none; }
-
-#disc-setup {
-  max-width: 440px; margin: 60px auto; text-align: center;
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
-}
-#disc-setup .ds-icon { font-size: 48px; opacity: .5; }
-#disc-setup h2 { font-size: 20px; font-weight: 600; }
-#disc-setup p  { color: var(--c-txt3); line-height: 1.6; }
-
-/* Discover note when no key */
-.disc-no-key {
-  background: var(--c-bg2); border: 1px solid var(--c-border);
-  border-radius: var(--r); padding: 16px 20px;
-  color: var(--c-txt3); font-size: 13px; line-height: 1.6;
-}
-.disc-no-key strong { color: var(--c-txt2); }
-
-#disc-main { display: none; }
-.disc-toolbar {
-  display: flex; align-items: center; gap: 10px;
-  margin-bottom: 14px; flex-wrap: wrap;
-}
-.disc-search { display: flex; flex: 1; gap: 8px; min-width: 180px; }
-.disc-search input {
-  flex: 1; background: var(--c-bg2); border: 1px solid var(--c-border);
-  border-radius: var(--r-sm); padding: 9px 13px;
-  color: var(--c-txt); font: inherit; outline: none;
-}
-.disc-search input:focus { border-color: var(--c-acc); }
-
-#disc-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
-.chip {
-  background: var(--c-bg2); border: 1px solid var(--c-border);
-  border-radius: 20px; padding: 5px 13px;
-  font-size: 12px; color: var(--c-txt2); cursor: pointer;
-  white-space: nowrap;
-}
-.chip:hover { border-color: var(--c-acc); color: var(--c-txt); }
-.chip.active { background: var(--c-acc); border-color: var(--c-acc); color: #fff; font-weight: 600; }
-
-#disc-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-  gap: 13px;
-  margin-bottom: 24px;
-}
-.disc-card {
-  position: relative; border-radius: var(--r); overflow: hidden;
-  aspect-ratio: 16/10; background: var(--c-bg2);
-  border: 1px solid var(--c-border);
-  transition: transform .22s ease, box-shadow .22s ease;
-  cursor: pointer; contain: layout style paint;
-}
-.disc-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
-.disc-card:hover .disc-over { opacity: 1; }
-.disc-thumb {
-  width: 100%; height: 100%; object-fit: cover;
-  transition: transform .3s ease;
-  background: var(--c-bg3);
-  background-image: linear-gradient(90deg, var(--c-bg3) 25%, var(--c-bg2) 50%, var(--c-bg3) 75%);
-  background-size: 800px 100%;
-  animation: shimmer 1.4s ease-in-out infinite;
-}
-.disc-thumb.loaded { background-image: none; animation: none; }
-.disc-card:hover .disc-thumb { transform: scale(1.04); }
-.disc-over {
-  position: absolute; inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,.78) 0%, transparent 52%);
-  opacity: 0; transition: opacity .22s ease;
-  display: flex; flex-direction: column; justify-content: flex-end; padding: 10px;
-}
-.disc-credit { font-size: 11px; color: rgba(255,255,255,.75); margin-bottom: 7px; line-height: 1.4; }
-.disc-save {
-  background: var(--c-acc); border: none; border-radius: var(--r-sm);
-  color: #fff; padding: 6px 12px; font-size: 12px; font-weight: 600;
-  cursor: pointer; width: fit-content; transition: background var(--trans);
-}
-.disc-save:hover { background: var(--c-acc2); }
-.disc-save:disabled { opacity: .6; cursor: not-allowed; }
-
-/* Small "View on Unsplash" icon button */
-.disc-view-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px;
-  background: rgba(255,255,255,.15);
-  border-radius: var(--r-sm);
-  color: rgba(255,255,255,.9);
-  text-decoration: none;
-  flex-shrink: 0;
-  transition: background .15s;
-  border: 1px solid rgba(255,255,255,.2);
-}
-.disc-view-btn:hover {
-  background: rgba(255,255,255,.28);
-  color: #fff;
-}
-
-.disc-loading, .disc-empty {
-  grid-column: 1/-1; text-align: center; padding: 60px 20px;
-  color: var(--c-txt3); font-size: 14px; line-height: 2;
-}
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-.disc-loading { animation: pulse 1.4s ease-in-out infinite; }
-
-#disc-more {
-  display: none; margin: 0 auto 24px;
-  justify-content: center; padding: 10px 28px;
-}
 
 /* ═══════════════════════════════════════════════════════════
    TOAST
@@ -467,75 +557,246 @@ button:active { transform: scale(.97); }
 </head>
 <body style="visibility:hidden">
 
-<!-- TOP BAR -->
-<header id="topbar">
-  <div class="topbar-left">
-    <img class="logo-img" src="../icon.png" alt="Wallpaper Studio" onerror="this.style.display='none'"/>
-    <span class="logo-text">Wallpaper Studio</span>
-  </div>
-  <div class="tb-actions">
-    <button id="btn-add-local">+ Add Image</button>
-    <button id="btn-slideshow" style="display:none">&#9654; Slideshow</button>
-    <button id="btn-settings" title="Settings">&#9881;</button>
-  </div>
-</header>
+<div id="app-shell">
 
-<!-- SIDEBAR -->
-<aside id="sidebar">
-  <div class="sb-section">
-    <div class="sb-label">Collections</div>
-    <div id="nav-spot"  class="nav-item"><span class="nav-icon">&#10026;</span>Spotlight</div>
-    <div id="nav-fav"   class="nav-item"><span class="nav-icon">&#11088;</span>Favourites</div>
-    <div id="nav-disc"  class="nav-item"><span class="nav-icon">&#127758;</span>Discover</div>
-  </div>
-  <div class="sb-divider"></div>
-  <div class="sb-label" style="padding-left:18px">Folders</div>
-  <div id="folders-list"></div>
-  <button id="btn-add-folder" class="btn-primary">+ Add Folder</button>
-</aside>
-
-<!-- MAIN -->
-<main id="main">
-
-  <div id="empty-state">
-    <div class="es-icon">&#128194;</div>
-    <h2>No Folders Yet</h2>
-    <p>Add a folder to start organizing your wallpapers, or browse Discover.</p>
-    <button id="empty-add-folder" class="btn-primary">+ Add Your First Folder</button>
-  </div>
-
-  <div id="gallery-wrap">
-    <div id="gallery"></div>
-  </div>
-
-  <div id="discover-wrap">
-
-    <!-- No key state -->
-    <div id="disc-setup">
-      <div class="ds-icon">&#127758;</div>
-      <h2>Discover Wallpapers</h2>
-      <p>The Discover feature requires an Unsplash API key configured by the developer.<br/>Contact the app distributor for a build with Discover enabled.</p>
-      <div class="disc-no-key">
-        <strong>For developers:</strong> Set the <code>UNSPLASH_ACCESS_KEY</code> environment variable before building the app to embed your key.
-      </div>
+  <!-- TOPBAR -->
+  <header id="topbar">
+    <div class="topbar-left">
+      <img class="logo-img" src="../icon.png" alt="" onerror="this.style.display='none'"/>
+      <span class="logo-text">Wallpaper Studio</span>
     </div>
+    <div class="tb-actions">
+      <button id="btn-add-local">+ Add Image</button>
+    </div>
+  </header>
 
-    <!-- Main discover UI -->
-    <div id="disc-main">
-      <div class="disc-toolbar">
-        <div class="disc-search">
-          <input id="disc-search-in" type="text" placeholder="Search wallpapers..."/>
-          <button id="disc-search-btn">Search</button>
+  <!-- BODY ROW -->
+  <div id="body-row">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div class="sb-section">
+        <div class="sb-label">Collections</div>
+        <div id="nav-spot" class="nav-item"><span class="nav-icon">&#10026;</span>Spotlight</div>
+        <div id="nav-fav"  class="nav-item"><span class="nav-icon">&#11088;</span>Favourites</div>
+        <div id="nav-disc" class="nav-item"><span class="nav-icon">&#127758;</span>Discover</div>
+      </div>
+      <div class="sb-divider"></div>
+      <div class="sb-label" style="padding-left:18px">Folders</div>
+      <div id="folders-list"></div>
+      <button id="btn-add-folder" class="btn-primary">+ Add Folder</button>
+      <div class="sb-divider"></div>
+      <div class="sb-section" style="padding-bottom:10px">
+        <div id="nav-slideshow" class="nav-item"><span class="nav-icon">&#9654;</span>Slideshow</div>
+        <div id="nav-settings"  class="nav-item"><span class="nav-icon">&#9881;</span>Settings</div>
+      </div>
+    </aside>
+
+    <!-- CONTENT -->
+    <main id="content">
+
+      <!-- VIEW: Empty -->
+      <div id="view-empty" class="view">
+        <div class="view-scroll" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px">
+          <div class="es-icon">&#128194;</div>
+          <h2 class="es-title">No Folders Yet</h2>
+          <p class="es-desc">Add a folder to start organizing your wallpapers, or browse Discover.</p>
+          <button id="empty-add-folder" class="btn-primary" style="margin-top:4px">+ Add Your First Folder</button>
         </div>
       </div>
-      <div id="disc-chips"></div>
-      <div id="disc-grid"></div>
-      <button id="disc-more" class="btn-ghost">Load more</button>
-    </div>
 
+      <!-- VIEW: Gallery -->
+      <div id="view-gallery" class="view">
+        <div class="view-scroll">
+          <div id="gallery"></div>
+        </div>
+      </div>
+
+      <!-- VIEW: Discover -->
+      <div id="view-discover" class="view">
+        <div class="view-scroll">
+          <div id="disc-setup">
+            <div class="ds-icon">&#127758;</div>
+            <h2>Discover Wallpapers</h2>
+            <p>The Discover feature requires an Unsplash API key configured by the developer.<br/>Contact the app distributor for a build with Discover enabled.</p>
+            <div class="disc-no-key">
+              <strong>For developers:</strong> Set the <code>UNSPLASH_ACCESS_KEY</code> environment variable before building to embed your key.
+            </div>
+          </div>
+          <div id="disc-main">
+            <div class="disc-toolbar">
+              <div class="disc-search">
+                <input id="disc-search-in" type="text" placeholder="Search wallpapers..."/>
+                <button id="disc-search-btn">Search</button>
+              </div>
+            </div>
+            <div id="disc-chips"></div>
+            <div id="disc-grid"></div>
+            <button id="disc-more" class="btn-ghost">Load more</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW: Settings -->
+      <div id="view-settings" class="view">
+        <div class="view-scroll">
+          <div class="settings-wrap">
+            <div class="settings-heading">Settings</div>
+            <div class="settings-sub">Wallpaper Studio v0.3.4</div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">Performance</div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Hardware Acceleration</div>
+                  <div class="setting-desc">Uses GPU for faster rendering. Disabled by default due to known instability on some systems. Restart required to apply.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <label class="tog">
+                    <input type="checkbox" id="chk-hw"/>
+                    <span class="tog-track"></span><span class="tog-thumb"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-notice" id="hw-notice">A restart is required for this change to take effect.</div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">Appearance</div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Theme</div>
+                  <div class="setting-desc">Switch between dark and light UI.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <select id="sel-theme" class="sel">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Accent Color</div>
+                  <div class="setting-desc">Applied to buttons, active items, and toggles across the app.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <div class="swatches" id="swatches"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">Gallery</div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Thumbnail Size</div>
+                  <div class="setting-desc">Width of image cards in the gallery grid.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <select id="sel-thumbsize" class="sel">
+                    <option value="160">Small (160px)</option>
+                    <option value="210">Medium (210px)</option>
+                    <option value="280">Large (280px)</option>
+                    <option value="340">Extra Large (340px)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Show Image Names</div>
+                  <div class="setting-desc">Display file name beneath each thumbnail.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <label class="tog">
+                    <input type="checkbox" id="chk-names"/>
+                    <span class="tog-track"></span><span class="tog-thumb"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">About</div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Wallpaper Studio</div>
+                  <div class="setting-desc">Version 0.3.4 &nbsp;·&nbsp; Windows 10 / 11 &nbsp;·&nbsp; Unsplash API compliant</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="settings-footer">
+          <button id="btn-settings-discard" class="btn-ghost">Discard</button>
+          <div class="spacer"></div>
+          <button id="btn-settings-save" class="btn-primary">Save Settings</button>
+        </div>
+      </div>
+
+      <!-- VIEW: Slideshow -->
+      <div id="view-slideshow" class="view">
+        <div class="view-scroll">
+          <div class="slideshow-wrap">
+            <div class="slideshow-heading">Slideshow</div>
+            <div class="slideshow-sub">Auto-rotate wallpapers on a configurable schedule.</div>
+
+            <div class="slideshow-status">
+              <div id="ss-dot" class="ss-dot"></div>
+              <span id="ss-status-text" class="ss-status-text">Slideshow is stopped</span>
+              <div class="ss-ctrl-btns">
+                <button id="btn-ss-start" class="btn-primary">&#9654; Start</button>
+                <button id="btn-ss-stop"  class="btn-danger" style="display:none">&#9646;&#9646; Stop</button>
+              </div>
+            </div>
+
+            <div class="slideshow-section">
+              <div class="slideshow-section-title">Configuration</div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Change Interval</div>
+                  <div class="setting-desc">How long each wallpaper stays before switching. Changes apply on next Start.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <select id="ss-sel-interval" class="sel">
+                    <option value="15000">15 seconds</option>
+                    <option value="30000">30 seconds</option>
+                    <option value="60000">1 minute</option>
+                    <option value="300000">5 minutes</option>
+                    <option value="600000">10 minutes</option>
+                    <option value="1800000">30 minutes</option>
+                    <option value="3600000">1 hour</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DETAILS PANEL (absolute, inside #content) -->
+      <div id="det-panel">
+        <div id="det-header">
+          <h3>Image Details</h3>
+          <button id="det-close" class="btn-ghost">&#x2715;</button>
+        </div>
+        <div id="det-img-wrap"><img id="det-img" src="" alt=""/></div>
+        <div class="det-meta">
+          <div class="det-row"><span class="det-label">Name</span><span id="det-name" class="det-val">&#8212;</span></div>
+          <div class="det-row"><span class="det-label">Dimensions</span><span id="det-dims" class="det-val">&#8212;</span></div>
+          <div class="det-row"><span class="det-label">File size</span><span id="det-size" class="det-val">&#8212;</span></div>
+          <div class="det-row"><span class="det-label">Date</span><span id="det-date" class="det-val">&#8212;</span></div>
+          <div class="det-row"><span class="det-label">Path</span><span id="det-path" class="det-val">&#8212;</span></div>
+        </div>
+        <div class="det-actions">
+          <button id="det-set"  class="btn-primary">Set wallpaper</button>
+          <button id="det-copy">Copy to...</button>
+        </div>
+      </div>
+
+    </main>
   </div>
-
-</main>
+</div>
 
 <!-- CONTEXT MENU -->
 <div id="ctx-menu">
@@ -554,9 +815,7 @@ button:active { transform: scale(.97); }
     <h3>Copy to folder</h3>
     <p class="modal-sub">Select a destination</p>
     <div id="ap-list" class="ap-list"></div>
-    <div class="modal-foot">
-      <button id="ap-cancel" class="btn-ghost">Cancel</button>
-    </div>
+    <div class="modal-foot"><button id="ap-cancel" class="btn-ghost">Cancel</button></div>
   </div>
 </div>
 
@@ -565,28 +824,6 @@ button:active { transform: scale(.97); }
   <button id="lb-close">&#x2715;</button>
   <img id="lb-img" src="" alt="Preview"/>
   <div id="lb-credit"></div>
-</div>
-
-<!-- DETAILS PANEL -->
-<div id="det-panel">
-  <div id="det-header">
-    <h3>Image Details</h3>
-    <button id="det-close" class="btn-ghost">&#x2715;</button>
-  </div>
-  <div id="det-img-wrap">
-    <img id="det-img" src="" alt=""/>
-  </div>
-  <div class="det-meta">
-    <div class="det-row"><span class="det-label">Name</span><span id="det-name" class="det-val">&#8212;</span></div>
-    <div class="det-row"><span class="det-label">Dimensions</span><span id="det-dims" class="det-val">&#8212;</span></div>
-    <div class="det-row"><span class="det-label">File size</span><span id="det-size" class="det-val">&#8212;</span></div>
-    <div class="det-row"><span class="det-label">Date</span><span id="det-date" class="det-val">&#8212;</span></div>
-    <div class="det-row"><span class="det-label">Path</span><span id="det-path" class="det-val">&#8212;</span></div>
-  </div>
-  <div class="det-actions">
-    <button id="det-set"  class="btn-primary">Set wallpaper</button>
-    <button id="det-copy">Copy to...</button>
-  </div>
 </div>
 
 <script src="renderer.js"></script>

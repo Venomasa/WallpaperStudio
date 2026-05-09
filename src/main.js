@@ -89,7 +89,7 @@ async function addAlbum(name, folderPath) {
 }
 
 // ─── Windows ──────────────────────────────────────────────────────────────────
-let mainWindow, slideshowWin = null, settingsWin = null;
+let mainWindow;
 let slideshowTimer = null, slideshowIndex = 0, slideshowIntervalMs = 6000;
 
 // ─── Config/Storage helpers ───────────────────────────────────────────────────
@@ -329,35 +329,7 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 
-// ─── IPC: Slideshow config window ─────────────────────────────────────────────
-ipcMain.handle('open-slideshow-config', async () => {
-  if (slideshowWin) return true;
-  slideshowWin = new BrowserWindow({
-    parent: mainWindow, modal: true, width: 500, height: 400, resizable: false,
-    webPreferences: { preload: path.join(__dirname, 'slideshow-preload.js'), contextIsolation: true, nodeIntegration: false }
-  });
-  slideshowWin.loadFile(path.join(__dirname, 'slideshow-config.html'));
-  slideshowWin.on('closed', () => { slideshowWin = null; });
-  return true;
-});
 
-// ─── IPC: Settings window ─────────────────────────────────────────────────────
-ipcMain.handle('open-settings', async () => {
-  if (settingsWin) { settingsWin.focus(); return true; }
-  const iconPath = path.join(__dirname, '..', 'icon.png');
-  settingsWin = new BrowserWindow({
-    parent: mainWindow, modal: false,
-    width: 520, height: 640, resizable: true, minHeight: 520,
-    title: 'Settings — Wallpaper Studio',
-    autoHideMenuBar: true,
-    icon: fs.existsSync(iconPath) ? iconPath : undefined,
-    webPreferences: { preload: path.join(__dirname, 'settings-preload.js'), contextIsolation: true, nodeIntegration: false }
-  });
-  settingsWin.setMenuBarVisibility(false);
-  settingsWin.loadFile(path.join(__dirname, 'settings.html'));
-  settingsWin.on('closed', () => { settingsWin = null; });
-  return true;
-});
 
 // ─── IPC: App settings (hardware accel, theme, accent) ───────────────────────
 ipcMain.handle('get-app-settings', async () => loadAppSettingsSync());
