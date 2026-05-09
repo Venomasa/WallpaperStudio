@@ -3,7 +3,7 @@
 A modern, desktop wallpaper manager for Windows, built with Electron.
 Manage local wallpaper collections and discover high-quality photos from Unsplash — from a clean, polished single-window UI.
 
-![Version](https://img.shields.io/badge/version-0.3.4-blueviolet)
+![Version](https://img.shields.io/badge/version-0.3.5-blueviolet)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)
 ![Electron](https://img.shields.io/badge/electron-27-47848f)
 
@@ -16,9 +16,9 @@ Manage local wallpaper collections and discover high-quality photos from Unsplas
 - **Spotlight** — Browse Windows Spotlight images automatically
 - **Discover** — Fetch high-quality wallpapers from Unsplash (API key required at build time)
 - **One-click Set** — Apply any wallpaper instantly as your desktop background (Windows 10 and 11)
-- **Slideshow** — Auto-rotate wallpapers on a configurable schedule, controlled from a dedicated in-app page
+- **Slideshow** — Auto-rotate wallpapers on a configurable schedule; scoped to the current album or all albums
 - **Details Panel** — View image metadata (dimensions, size, date)
-- **Settings Page** — Hardware acceleration, light/dark mode, accent color, thumbnail size — all in-app, no popup
+- **Settings Page** — Hardware acceleration, light/dark mode, accent color, thumbnail size, image name labels — all in-app, no popup
 - **Dark and Light UI** — Toggle via the Settings page
 
 ---

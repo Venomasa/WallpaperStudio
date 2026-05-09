@@ -5,6 +5,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3.5] - 2026-05-09
+
+### Fixed
+- **Spotlight favourite button silent no-op** — Clicking ★ on a Spotlight image previously called `toggleFavorite` with a `spotlight_…` ID that was never in `db.wallpapers`, so the toggle appeared to work but reset on next render. The star button is now hidden for Spotlight cards (Spotlight images are not stored in the DB and cannot be favourited; copy them to an album first). The "Remove from favourites" context menu item is also suppressed for Spotlight entries.
+- **Duplicate wallpaper IDs after delete** — `addWallpaperFromPath`, `syncFromStorageDir`, `copy-to-album`, `copy-spotlight-to-album`, and `download-image-url` all used `'wp_' + db.wallpapers.length + N` for ID generation. After any delete, length shrinks and the next import re-uses an existing ID, causing `toggleFavorite` and `deleteImage` to silently target the wrong record. All ID generation now uses `'wp_' + Date.now() + '_' + Math.random().toString(36).slice(2,7)`, consistent with the correct pattern already used in `scanWallpapersInFolder`.
+- **"Show Image Names" setting had no effect** — The toggle was saved and loaded but `applySettings()` never read it, no CSS class was toggled, and `makeCard()` rendered no name element. Now: `applySettings` toggles `html.show-names`; `makeCard` appends a `.card-name` div with the file name; CSS shows `.card-name` only when `html.show-names` is active.
+- **Slideshow cycled all albums regardless of selection** — `startSlideshow()` iterated all of `db.wallpapers` with no album filter. The renderer now passes `S.currentAlbumId` (when in album mode) to the `start-slideshow` IPC send; `startSlideshow(intervalMs, albumId)` filters the wallpaper list before cycling. The slideshow view shows a "Source" row indicating which album will be used.
+- **Slideshow running-state desynced after app restart** — `S.slideshowRunning` was pure renderer memory and had no way to reflect whether the main-process timer was actually running. A new `get-slideshow-status` IPC handle returns `{ running, intervalMs, albumId }` from the main process. `navigateTo('slideshow')` now calls it to sync state before rendering the UI, so Start/Stop always reflects reality.
+- **IPC event listeners accumulated on GPU crash / renderer reload** — `onRefresh` and `onSettingsUpdated` in the preload called `ipcRenderer.on()` with no cleanup. Each renderer reload (triggered by repeated GPU crashes) stacked an additional listener, causing settings-updated to fire multiple times per save and producing duplicate toasts and potential race conditions. Both handlers now call `ipcRenderer.removeAllListeners(channel)` before re-registering.
+
+### Changed
+- Slideshow Start toast now includes the source album name (e.g. "Slideshow started (Landscapes)") or "all albums" when no specific album is selected.
+- `copy-spotlight-to-album` IPC handler ID generation fixed to use the same unique-random pattern as all other handlers (previously used `albumId` string as suffix, risking collisions).
+
+---
+
 ## [0.3.4] - 2026-05-09
 
 ### Added

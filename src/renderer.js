@@ -71,6 +71,9 @@ function applySettings(settings) {
     document.documentElement.style.setProperty('--thumb-min', s + 'px');
     document.documentElement.style.setProperty('--thumb-h', Math.round(s * 0.66) + 'px');
   }
+
+  // Show image names
+  document.documentElement.classList.toggle('show-names', settings.showImageNames === true);
 }
 
 // Populate settings UI controls from a settings object
@@ -206,8 +209,8 @@ let _ctx = null;
 function showCtxMenu(e, data) {
   e.stopPropagation();
   _ctx = data;
-  $('ctx-unfav').style.display = (data.isFav || data.isSpot) ? 'flex' : 'none';
-  $('ctx-sep').style.display   = (data.isFav || data.isSpot) ? 'block' : 'none';
+  $('ctx-unfav').style.display = data.isFav ? 'flex' : 'none';
+  $('ctx-sep').style.display   = data.isFav ? 'block' : 'none';
   D.ctxMenu.classList.add('on');
   const mw = D.ctxMenu.offsetWidth, mh = D.ctxMenu.offsetHeight;
   let x = e.clientX, y = e.clientY;
@@ -360,11 +363,18 @@ async function navigateTo(view, galleryMode, albumId) {
   }
 
   if (view === 'slideshow') {
-    // Populate interval from saved settings
+    // Sync running state from main process (source of truth for the timer)
     try {
-      const cfg = await window.wp.getAppSettings();
-      $('ss-sel-interval').value = String(cfg.slideshowInterval || 60000);
-    } catch {}
+      const status = await window.wp.getSlideshowStatus();
+      S.slideshowRunning = status.running;
+      if (status.intervalMs) $('ss-sel-interval').value = String(status.intervalMs);
+    } catch {
+      // Fallback: populate interval from saved settings
+      try {
+        const cfg = await window.wp.getAppSettings();
+        $('ss-sel-interval').value = String(cfg.slideshowInterval || 60000);
+      } catch {}
+    }
     updateSlideshowUI();
     return;
   }
@@ -410,23 +420,35 @@ function makeCard(w) {
   img.dataset.src = 'file://' + w.path;
   img.onclick = () => openLightbox('file://' + w.path);
 
+  // Image name label (visible only when show-names CSS class is active)
+  const nameEl = document.createElement('div');
+  nameEl.className = 'card-name';
+  nameEl.textContent = w.name || '';
+
   const bar = document.createElement('div');
   bar.className = 'card-bar';
 
   const favBtn = document.createElement('button');
-  favBtn.className = 'btn-icon' + (w.favorite ? ' fav-on' : '');
-  favBtn.title = w.favorite ? 'Remove from favourites' : 'Add to favourites';
-  favBtn.innerHTML = w.favorite ? '&#9733;' : '&#9734;';
-  favBtn.onclick = async e => {
-    e.stopPropagation();
-    try {
-      await window.wp.toggleFavorite(w.id);
-      w.favorite = !w.favorite;
-      favBtn.innerHTML = w.favorite ? '&#9733;' : '&#9734;';
-      favBtn.classList.toggle('fav-on', w.favorite);
-      if (S.galleryMode === 'favorites' && !w.favorite) removeCard(card);
-    } catch {}
-  };
+  // Spotlight images are not in the DB so favouriting them is not supported.
+  // Hide the star button entirely for spotlight entries.
+  const isSpotlightCard = !!w.isSpotlight;
+  if (isSpotlightCard) {
+    favBtn.style.display = 'none';
+  } else {
+    favBtn.className = 'btn-icon' + (w.favorite ? ' fav-on' : '');
+    favBtn.title = w.favorite ? 'Remove from favourites' : 'Add to favourites';
+    favBtn.innerHTML = w.favorite ? '&#9733;' : '&#9734;';
+    favBtn.onclick = async e => {
+      e.stopPropagation();
+      try {
+        await window.wp.toggleFavorite(w.id);
+        w.favorite = !w.favorite;
+        favBtn.innerHTML = w.favorite ? '&#9733;' : '&#9734;';
+        favBtn.classList.toggle('fav-on', w.favorite);
+        if (S.galleryMode === 'favorites' && !w.favorite) removeCard(card);
+      } catch {}
+    };
+  }
 
   const setBtn = document.createElement('button');
   setBtn.className = 'btn-set';
@@ -457,6 +479,7 @@ function makeCard(w) {
   bar.appendChild(setBtn);
   bar.appendChild(moreBtn);
   card.appendChild(img);
+  card.appendChild(nameEl);
   card.appendChild(bar);
   return card;
 }
@@ -477,6 +500,7 @@ function updateSlideshowUI() {
   const txt  = $('ss-status-text');
   const startBtn = $('btn-ss-start');
   const stopBtn  = $('btn-ss-stop');
+  const srcLabel = $('ss-source-label');
   if (S.slideshowRunning) {
     dot.classList.add('running');
     txt.textContent = 'Slideshow is running';
@@ -487,6 +511,14 @@ function updateSlideshowUI() {
     txt.textContent = 'Slideshow is stopped';
     startBtn.style.display = 'inline-flex';
     stopBtn.style.display  = 'none';
+  }
+  if (srcLabel) {
+    if (S.galleryMode === 'albums' && S.currentAlbumId) {
+      const album = S.albums.find(a => a.id === S.currentAlbumId);
+      srcLabel.textContent = album ? album.name : 'Current album';
+    } else {
+      srcLabel.textContent = 'All albums';
+    }
   }
 }
 
@@ -801,10 +833,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       const cfg = await window.wp.getAppSettings();
       await window.wp.saveAppSettings({ ...cfg, slideshowInterval: intervalMs });
     } catch {}
-    window.wp.startSlideshow(intervalMs);
+    // Pass current album ID so slideshow stays scoped to what the user is browsing.
+    // null = all wallpapers across all albums.
+    const albumId = S.galleryMode === 'albums' ? S.currentAlbumId : null;
+    window.wp.startSlideshow(intervalMs, albumId);
     S.slideshowRunning = true;
     updateSlideshowUI();
-    toast('Slideshow started');
+    const scopeLabel = albumId ? (S.albums.find(a => a.id === albumId)?.name || 'current album') : 'all albums';
+    toast('Slideshow started (' + scopeLabel + ')');
   };
   $('btn-ss-stop').onclick = () => {
     window.wp.stopSlideshow();

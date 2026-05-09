@@ -164,7 +164,7 @@ async function addWallpaperFromPath(srcPath, albumIdArg) {
   const dest = path.join(folderDir, base);
   await fsp.copyFile(srcPath, dest);
   const db = await loadDB();
-  const entry = { id: 'wp_' + (db.wallpapers.length + 1), path: dest, name: base, favorite: false, addedAt: Date.now(), albumId };
+  const entry = { id: 'wp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), path: dest, name: base, favorite: false, addedAt: Date.now(), albumId };
   db.wallpapers.push(entry);
   await saveDB(db);
   return entry;
@@ -230,18 +230,26 @@ async function toggleFavorite(id) {
   return w ? w.favorite : null;
 }
 
+let slideshowAlbumId = null; // album currently being slideshowed (null = all)
+
 function stopSlideshow() { if (slideshowTimer) { clearInterval(slideshowTimer); slideshowTimer = null; } }
 
-async function startSlideshow(intervalMs) {
+async function startSlideshow(intervalMs, albumId) {
   stopSlideshow();
   slideshowIntervalMs = intervalMs || 6000;
+  slideshowAlbumId = albumId || null;
   const db = await loadDB();
-  if (!db.wallpapers?.length) return;
+  const initialArr = slideshowAlbumId
+    ? (db.wallpapers || []).filter(w => w.albumId === slideshowAlbumId)
+    : (db.wallpapers || []);
+  if (!initialArr.length) return;
   slideshowIndex = 0;
   slideshowTimer = setInterval(async () => {
     const list = await loadDB();
-    const arr = list.wallpapers;
-    if (!arr?.length) return;
+    const arr = slideshowAlbumId
+      ? (list.wallpapers || []).filter(w => w.albumId === slideshowAlbumId)
+      : (list.wallpapers || []);
+    if (!arr.length) return;
     const w = arr[slideshowIndex % arr.length];
     if (w?.path) await setAsWallpaper(w.path);
     slideshowIndex = (slideshowIndex + 1) % arr.length;
@@ -259,7 +267,7 @@ async function syncFromStorageDir() {
     const fullPath = path.join(dir, name);
     if (!existing.has(fullPath)) {
       db.wallpapers = db.wallpapers || [];
-      db.wallpapers.push({ id: 'wp_' + (db.wallpapers.length + added + 1), path: fullPath, name, favorite: false, addedAt: Date.now() });
+      db.wallpapers.push({ id: 'wp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), path: fullPath, name, favorite: false, addedAt: Date.now() });
       added++;
     }
   }
@@ -554,11 +562,13 @@ ipcMain.handle('copy-to-album', async (e, imagePath, albumId) => {
   if (!album) throw new Error('Album not found');
   const destName = `${baseName}_${Date.now()}${ext}`, destPath = path.join(album.folder, destName);
   await fsp.copyFile(imagePath, destPath);
-  const entry = { id: 'wp_' + Date.now() + '_' + albumId, path: destPath, name: destName, favorite: false, addedAt: Date.now(), albumId };
+  const entry = { id: 'wp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), path: destPath, name: destName, favorite: false, addedAt: Date.now(), albumId };
   db.wallpapers = db.wallpapers || []; db.wallpapers.push(entry); await saveDB(db);
   return entry;
 });
 
+// copy-spotlight-to-album: Spotlight images are plain files on disk; copy logic is
+// identical to copy-to-album. Kept as a separate handle for preload API stability.
 ipcMain.handle('copy-spotlight-to-album', async (e, imagePath, albumId) => {
   const db = await loadDB();
   const ext = path.extname(imagePath); const baseName = path.basename(imagePath, ext);
@@ -566,14 +576,19 @@ ipcMain.handle('copy-spotlight-to-album', async (e, imagePath, albumId) => {
   if (!album) throw new Error('Album not found');
   const destName = `${baseName}_${Date.now()}${ext}`, destPath = path.join(album.folder, destName);
   await fsp.copyFile(imagePath, destPath);
-  const entry = { id: 'wp_' + Date.now() + '_' + albumId, path: destPath, name: destName, favorite: false, addedAt: Date.now(), albumId };
+  const entry = { id: 'wp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), path: destPath, name: destName, favorite: false, addedAt: Date.now(), albumId };
   db.wallpapers = db.wallpapers || []; db.wallpapers.push(entry); await saveDB(db);
   return entry;
 });
 
 ipcMain.handle('toggle-favorite', async (e, id) => toggleFavorite(id));
-ipcMain.on('start-slideshow', (e, interval) => startSlideshow(interval));
+ipcMain.on('start-slideshow', (e, interval, albumId) => startSlideshow(interval, albumId));
 ipcMain.on('stop-slideshow', () => stopSlideshow());
+ipcMain.handle('get-slideshow-status', () => ({
+  running: slideshowTimer !== null,
+  intervalMs: slideshowIntervalMs,
+  albumId: slideshowAlbumId,
+}));
 
 // ─── IPC: Download Unsplash image (with API compliance) ───────────────────────
 ipcMain.handle('download-image-url', async (e, url, filename, albumId, downloadLocation) => {
@@ -597,7 +612,7 @@ ipcMain.handle('download-image-url', async (e, url, filename, albumId, downloadL
     await fsp.writeFile(destPath, buffer);
 
     const db = await loadDB();
-    const entry = { id: 'wp_' + Date.now() + '_unsplash', path: destPath, name: baseName, favorite: false, addedAt: Date.now(), albumId };
+    const entry = { id: 'wp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), path: destPath, name: baseName, favorite: false, addedAt: Date.now(), albumId };
     db.wallpapers = db.wallpapers || []; db.wallpapers.push(entry); await saveDB(db);
     console.log(`Downloaded Unsplash image to: ${destPath}`);
     return entry;

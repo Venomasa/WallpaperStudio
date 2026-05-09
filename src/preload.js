@@ -36,10 +36,17 @@ contextBridge.exposeInMainWorld('wp', {
   downloadImageUrl:     (url, fn, albumId, dlLoc) => ipcRenderer.invoke('download-image-url', url, fn, albumId, dlLoc),
 
   // Slideshow (fire-and-forget IPC sends to main process timer)
-  startSlideshow:       (intervalMs)              => ipcRenderer.send('start-slideshow', intervalMs),
+  startSlideshow:       (intervalMs, albumId)     => ipcRenderer.send('start-slideshow', intervalMs, albumId),
   stopSlideshow:        ()                        => ipcRenderer.send('stop-slideshow'),
+  getSlideshowStatus:   ()                        => ipcRenderer.invoke('get-slideshow-status'),
 
   // Events from main → renderer
-  onRefresh:            (cb) => ipcRenderer.on('refresh-gallery',   (_e)    => cb()),
-  onSettingsUpdated:    (cb) => ipcRenderer.on('settings-updated',  (_e, s) => cb(s)),
+  onRefresh:            (cb) => {
+    ipcRenderer.removeAllListeners('refresh-gallery');
+    ipcRenderer.on('refresh-gallery', (_e) => cb());
+  },
+  onSettingsUpdated:    (cb) => {
+    ipcRenderer.removeAllListeners('settings-updated');
+    ipcRenderer.on('settings-updated', (_e, s) => cb(s));
+  },
 });

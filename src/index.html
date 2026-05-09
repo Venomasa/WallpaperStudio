@@ -224,6 +224,12 @@ button:active { transform: scale(.97); }
 .card-bar { display: flex; align-items: center; gap: 6px; padding: 8px; }
 .btn-set { flex: 1; justify-content: center; padding: 6px 8px; font-size: 12px; font-weight: 600; }
 .btn-more { margin-left: auto; }
+/* Image name label — hidden by default, visible when html.show-names is set */
+.card-name {
+  display: none; font-size: 11px; color: var(--c-txt2);
+  padding: 2px 8px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+html.show-names .card-name { display: block; }
 
 /* ═══════════════════════════════════════════════════════════
    DISCOVER VIEW
@@ -420,6 +426,7 @@ button:active { transform: scale(.97); }
 .ss-dot.running { background: var(--c-grn); box-shadow: 0 0 8px rgba(34,197,94,.5); }
 .ss-status-text { flex: 1; font-size: 13px; color: var(--c-txt2); }
 .ss-ctrl-btns { display: flex; gap: 8px; flex-shrink: 0; }
+.ss-source-label { font-size: 12px; color: var(--c-txt2); font-style: italic; }
 .slideshow-section {
   background: var(--c-bg1); border: 1px solid var(--c-border);
   border-radius: var(--r); overflow: hidden; margin-bottom: 14px;
@@ -642,7 +649,7 @@ button:active { transform: scale(.97); }
         <div class="view-scroll">
           <div class="settings-wrap">
             <div class="settings-heading">Settings</div>
-            <div class="settings-sub">Wallpaper Studio v0.3.4</div>
+            <div class="settings-sub">Wallpaper Studio v0.3.5</div>
 
             <div class="settings-section">
               <div class="settings-section-title">Performance</div>
@@ -721,7 +728,7 @@ button:active { transform: scale(.97); }
               <div class="setting-row">
                 <div class="setting-info">
                   <div class="setting-label">Wallpaper Studio</div>
-                  <div class="setting-desc">Version 0.3.4 &nbsp;·&nbsp; Windows 10 / 11 &nbsp;·&nbsp; Unsplash API compliant</div>
+                  <div class="setting-desc">Version 0.3.5 &nbsp;·&nbsp; Windows 10 / 11 &nbsp;·&nbsp; Unsplash API compliant</div>
                 </div>
               </div>
             </div>
@@ -767,6 +774,15 @@ button:active { transform: scale(.97); }
                     <option value="1800000">30 minutes</option>
                     <option value="3600000">1 hour</option>
                   </select>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Source</div>
+                  <div class="setting-desc">Slideshow will cycle images from the last-viewed album, or all albums if no album was selected.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <span id="ss-source-label" class="ss-source-label">All albums</span>
                 </div>
               </div>
             </div>
