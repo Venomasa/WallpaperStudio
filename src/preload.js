@@ -8,12 +8,14 @@ contextBridge.exposeInMainWorld('wp', {
   getSpotlightImages:   ()                        => ipcRenderer.invoke('get-spotlight-images'),
   addWallpaper:         (path)                    => ipcRenderer.invoke('add-wallpaper', path),
   openFile:             ()                        => ipcRenderer.invoke('open-file'),
+  openFileToAlbum:      (albumId)                 => ipcRenderer.invoke('open-file-to-album', albumId),
   setWallpaper:         (path)                    => ipcRenderer.invoke('set-wallpaper', path),
   deleteImage:          (path)                    => ipcRenderer.invoke('delete-image', path),
   getImageMetadata:     (path)                    => ipcRenderer.invoke('get-image-metadata', path),
   toggleFavorite:       (id)                      => ipcRenderer.invoke('toggle-favorite', id),
   copyToAlbum:          (p, id)                   => ipcRenderer.invoke('copy-to-album', p, id),
   copySpotlightToAlbum: (p, id)                   => ipcRenderer.invoke('copy-spotlight-to-album', p, id),
+  downloadAndSetWallpaper: (url, fn, dlLoc)       => ipcRenderer.invoke('download-and-set-wallpaper', url, fn, dlLoc),
 
   // Albums / folders
   getAlbums:            ()                        => ipcRenderer.invoke('get-albums'),

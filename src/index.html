@@ -32,18 +32,25 @@
   --thumb-h:  138px;
 }
 [data-theme="light"] {
-  --c-bg0:    #f5f5f7;
-  --c-bg1:    #ffffff;
-  --c-bg2:    #ebebef;
-  --c-bg3:    #dddde5;
-  --c-border: #d0d0dc;
-  --c-bord2:  #b8b8c8;
-  --c-txt:    #111118;
-  --c-txt2:   #44445a;
-  --c-txt3:   #808090;
-  --shadow:   0 4px 16px rgba(0,0,0,.12);
-  --shadow-lg:0 12px 40px rgba(0,0,0,.20);
+  --c-bg0:    #f2f0f9;
+  --c-bg1:    #fdfcff;
+  --c-bg2:    #eae7f5;
+  --c-bg3:    #d9d5ea;
+  --c-border: #cac6dc;
+  --c-bord2:  #b0aacb;
+  --c-txt:    #1b1730;
+  --c-txt2:   #48446a;
+  --c-txt3:   #8c88a8;
+  --shadow:   0 4px 16px rgba(60,50,110,.10);
+  --shadow-lg:0 12px 40px rgba(60,50,110,.16);
 }
+[data-theme="light"] #topbar { background: rgba(253,252,255,.97); border-bottom-color: #d4d0e8; }
+[data-theme="light"] #sidebar { background: #f7f5fd; }
+[data-theme="light"] .card { background: #fff; box-shadow: 0 2px 8px rgba(60,50,110,.07); }
+[data-theme="light"] .card:hover { box-shadow: 0 4px 16px rgba(60,50,110,.14); }
+[data-theme="light"] .settings-section { background: #fff; }
+[data-theme="light"] .modal-box { background: #fff; }
+[data-theme="light"] #det-panel { background: #fff; }
 
 /* ═══════════════════════════════════════════════════════════
    RESET & BASE
@@ -71,7 +78,6 @@ a   { color: inherit; }
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 16px; gap: 12px; z-index: 100;
 }
-[data-theme="light"] #topbar { background: rgba(255,255,255,.96); }
 .topbar-left { display: flex; align-items: center; gap: 10px; }
 .logo-img { width: 28px; height: 28px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
 .logo-text {
@@ -123,9 +129,17 @@ a   { color: inherit; }
   color: var(--c-txt3); padding: 2px 5px; font-size: 11px;
   border-radius: 4px; transition: opacity var(--trans); flex-shrink: 0;
 }
-.folder-item:hover .folder-del { opacity: 1; }
+.folder-add-img {
+  opacity: 0; background: transparent; border: none;
+  color: var(--c-txt3); padding: 2px 4px; font-size: 14px; font-weight: 600;
+  border-radius: 4px; transition: opacity var(--trans); flex-shrink: 0; line-height: 1;
+}
+.folder-item:hover .folder-del,
+.folder-item:hover .folder-add-img { opacity: 1; }
 .folder-del:hover { background: rgba(239,68,68,.15); color: var(--c-red) !important; }
-.nav-item.active .folder-del { color: rgba(255,255,255,.5); }
+.folder-add-img:hover { background: rgba(99,102,241,.15); color: var(--c-acc) !important; }
+.nav-item.active .folder-del,
+.nav-item.active .folder-add-img { color: rgba(255,255,255,.5); }
 
 /* ═══════════════════════════════════════════════════════════
    CONTENT AREA
@@ -174,6 +188,8 @@ button:active { transform: scale(.97); }
 }
 .btn-icon:hover { background: var(--c-bg3); color: var(--c-txt); border-color: var(--c-border); }
 .btn-icon.fav-on { color: #f59e0b; }
+.btn-icon.spinning { animation: spin .7s linear infinite; pointer-events: none; opacity: .7; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ═══════════════════════════════════════════════════════════
    EMPTY STATE VIEW
@@ -296,12 +312,20 @@ html.show-names .card-name { display: block; }
 }
 .disc-credit { font-size: 11px; color: rgba(255,255,255,.75); margin-bottom: 7px; line-height: 1.4; }
 .disc-save {
+  background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.25);
+  border-radius: var(--r-sm); color: #fff; padding: 6px 12px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  width: fit-content; transition: background var(--trans);
+}
+.disc-save:hover    { background: rgba(255,255,255,.30); }
+.disc-save:disabled { opacity: .6; cursor: not-allowed; }
+.disc-set {
   background: var(--c-acc); border: none; border-radius: var(--r-sm);
   color: #fff; padding: 6px 12px; font-size: 12px; font-weight: 600;
   cursor: pointer; width: fit-content; transition: background var(--trans);
 }
-.disc-save:hover    { background: var(--c-acc2); }
-.disc-save:disabled { opacity: .6; cursor: not-allowed; }
+.disc-set:hover    { background: var(--c-acc2); }
+.disc-set:disabled { opacity: .6; cursor: not-allowed; }
 .disc-view-btn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; background: rgba(255,255,255,.15);
@@ -384,8 +408,9 @@ html.show-names .card-name { display: block; }
 .sel:focus { border-color: var(--c-acc); }
 .sel option { background: var(--c-bg2); }
 
-/* Accent swatches */
-.swatches { display: flex; gap: 7px; flex-wrap: wrap; flex-shrink: 0; }
+/* Accent swatches + color wheel */
+.swatches-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
+.swatches { display: flex; gap: 7px; flex-wrap: wrap; }
 .swatch {
   width: 28px; height: 28px; border-radius: 50%;
   border: 2px solid transparent; cursor: pointer;
@@ -394,6 +419,17 @@ html.show-names .card-name { display: block; }
 }
 .swatch:hover  { transform: scale(1.18); box-shadow: 0 2px 8px rgba(0,0,0,.4); }
 .swatch.active { border-color: var(--c-txt); transform: scale(1.1); box-shadow: 0 0 0 3px rgba(255,255,255,.15); }
+/* Color wheel divider */
+.wheel-divider { width: 1px; height: 24px; background: var(--c-border); flex-shrink: 0; }
+#accent-wheel {
+  width: 32px; height: 32px; border-radius: 50%; padding: 0; border: 2px solid var(--c-border);
+  cursor: pointer; background: transparent; outline: none; flex-shrink: 0;
+  -webkit-appearance: none; appearance: none; transition: border-color .15s;
+}
+#accent-wheel::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; }
+#accent-wheel::-webkit-color-swatch { border: none; border-radius: 50%; }
+#accent-wheel:hover { border-color: var(--c-acc); transform: scale(1.1); }
+#accent-wheel:focus { border-color: var(--c-acc); }
 
 /* Settings sticky footer */
 .settings-footer {
@@ -573,7 +609,9 @@ html.show-names .card-name { display: block; }
       <span class="logo-text">Wallpaper Studio</span>
     </div>
     <div class="tb-actions">
-      <button id="btn-add-local">+ Add Image</button>
+      <!-- Add Image moved to per-folder buttons in the sidebar (v0.3.6) -->
+      <button id="btn-add-local" style="display:none">+ Add Image</button>
+      <button id="btn-spot-refresh" class="btn-icon" title="Refresh Spotlight images" style="display:none;font-size:15px">&#8635;</button>
     </div>
   </header>
 
@@ -649,7 +687,7 @@ html.show-names .card-name { display: block; }
         <div class="view-scroll">
           <div class="settings-wrap">
             <div class="settings-heading">Settings</div>
-            <div class="settings-sub">Wallpaper Studio v0.3.5</div>
+            <div class="settings-sub">Wallpaper Studio v0.3.6</div>
 
             <div class="settings-section">
               <div class="settings-section-title">Performance</div>
@@ -688,7 +726,11 @@ html.show-names .card-name { display: block; }
                   <div class="setting-desc">Applied to buttons, active items, and toggles across the app.</div>
                 </div>
                 <div class="setting-ctrl">
-                  <div class="swatches" id="swatches"></div>
+                  <div class="swatches-row">
+                    <div class="swatches" id="swatches"></div>
+                    <div class="wheel-divider"></div>
+                    <input type="color" id="accent-wheel" title="Custom accent color" value="#6366f1"/>
+                  </div>
                 </div>
               </div>
             </div>
@@ -724,11 +766,26 @@ html.show-names .card-name { display: block; }
             </div>
 
             <div class="settings-section">
+              <div class="settings-section-title">Discover</div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Default Save Folder</div>
+                  <div class="setting-desc">Images set directly from Discover are automatically saved here. Falls back to the first folder if not set.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <select id="sel-default-folder" class="sel">
+                    <option value="">— No preference (first folder) —</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
               <div class="settings-section-title">About</div>
               <div class="setting-row">
                 <div class="setting-info">
                   <div class="setting-label">Wallpaper Studio</div>
-                  <div class="setting-desc">Version 0.3.5 &nbsp;·&nbsp; Windows 10 / 11 &nbsp;·&nbsp; Unsplash API compliant</div>
+                  <div class="setting-desc">Version 0.3.6 &nbsp;·&nbsp; Windows 10 / 11 &nbsp;·&nbsp; Unsplash API compliant</div>
                 </div>
               </div>
             </div>
@@ -779,10 +836,12 @@ html.show-names .card-name { display: block; }
               <div class="setting-row">
                 <div class="setting-info">
                   <div class="setting-label">Source</div>
-                  <div class="setting-desc">Slideshow will cycle images from the last-viewed album, or all albums if no album was selected.</div>
+                  <div class="setting-desc">Choose which folder to cycle through, or select All Albums to include everything.</div>
                 </div>
                 <div class="setting-ctrl">
-                  <span id="ss-source-label" class="ss-source-label">All albums</span>
+                  <select id="ss-source-sel" class="sel">
+                    <option value="">All Albums</option>
+                  </select>
                 </div>
               </div>
             </div>

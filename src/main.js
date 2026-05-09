@@ -321,6 +321,27 @@ function createWindow() {
   mainWindow.once('ready-to-show', showWindow);
   setTimeout(showWindow, 300);
 
+  // ── Slideshow close-guard: warn user before closing while slideshow is active ──
+  mainWindow.on('close', async (e) => {
+    if (slideshowTimer !== null) {
+      e.preventDefault();
+      const { response } = await dialog.showMessageBox(mainWindow, {
+        type:      'warning',
+        title:     'Slideshow is Running',
+        message:   'A slideshow is currently running.',
+        detail:    'Closing the app will stop the slideshow.\nMinimize it to the background to keep the slideshow going.',
+        buttons:   ['Minimize to Background', 'Stop & Close', 'Cancel'],
+        defaultId: 0,
+        cancelId:  2,
+        icon:      fs.existsSync(path.join(__dirname, '..', 'icon.png'))
+                     ? path.join(__dirname, '..', 'icon.png')
+                     : undefined,
+      });
+      if (response === 0) mainWindow.minimize();
+      else if (response === 1) { stopSlideshow(); mainWindow.destroy(); }
+      // response === 2 → Cancel: do nothing
+    }
+  });
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
@@ -484,7 +505,27 @@ ipcMain.handle('get-spotlight-images', async () => {
       return true;
     };
 
-    // SystemData (lock screen)
+    // Helper: scan a flat directory for candidate image files (extension-bearing or extension-less, min size)
+    const scanFlatDir = async (dirPath, label, priority) => {
+      try {
+        await fsp.access(dirPath);
+        const fileStats = [];
+        for (const file of await fsp.readdir(dirPath)) {
+          const fp = path.join(dirPath, file); const lower = file.toLowerCase();
+          try {
+            const s = await fsp.stat(fp);
+            if (s.isFile() && s.size > 200000 && (/\.(jpg|jpeg|png)$/i.test(lower) || !lower.includes('.'))) {
+              fileStats.push({ path: fp, mtime: s.mtime, name: file });
+            }
+          } catch { continue; }
+        }
+        fileStats.sort((a, b) => b.mtime - a.mtime);
+        for (const { path: fp, name } of fileStats) await addImage(fp, `${label} - ${name}`, priority);
+      } catch { /* path doesn't exist or no access — skip silently */ }
+    };
+
+    // SystemData (lock screen) — priority 1
+    // Fix: was only matching .jpg/.png; extension-less files (same as Assets) also appear here.
     try {
       const sdPath = path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'Microsoft', 'Windows', 'SystemData');
       if (await fsp.access(sdPath).then(() => true).catch(() => false)) {
@@ -494,9 +535,18 @@ ipcMain.handle('get-spotlight-images', async () => {
             for (const lf of await fsp.readdir(lsp)) {
               if (lf.startsWith('LockScreen_')) {
                 const fp = path.join(lsp, lf);
+                const fileStats = [];
                 for (const file of await fsp.readdir(fp)) {
-                  if (/\.(jpg|png)$/i.test(file)) await addImage(path.join(fp, file), `Lock Screen - ${file}`, 1);
+                  const lower = file.toLowerCase();
+                  try {
+                    const s = await fsp.stat(path.join(fp, file));
+                    if (s.isFile() && s.size > 200000 && (/\.(jpg|jpeg|png)$/i.test(lower) || !lower.includes('.'))) {
+                      fileStats.push({ path: path.join(fp, file), mtime: s.mtime, name: file });
+                    }
+                  } catch { continue; }
                 }
+                fileStats.sort((a, b) => b.mtime - a.mtime);
+                for (const { path: filePath, name } of fileStats) await addImage(filePath, `Lock Screen - ${name}`, 1);
               }
             }
           } catch { continue; }
@@ -504,25 +554,46 @@ ipcMain.handle('get-spotlight-images', async () => {
       }
     } catch {}
 
-    // Assets folder
+    // ContentDeliveryManager Assets — the classic Spotlight cache, priority 2
     for (const ap of [
       path.join(process.env.LOCALAPPDATA||'', 'Packages', 'Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy', 'LocalState', 'Assets'),
       path.join(process.env.LOCALAPPDATA||'', 'Packages', 'Microsoft.Windows.ContentDeliveryManager_8wekyb3d8bbwe', 'LocalState', 'Assets')
-    ]) {
-      try {
-        await fsp.access(ap);
-        const fileStats = [];
-        for (const file of await fsp.readdir(ap)) {
-          const fp = path.join(ap, file); const lower = file.toLowerCase();
-          try {
-            const s = await fsp.stat(fp);
-            if (s.size > 200000 && (/\.(jpg|png|jpeg)$/i.test(lower) || !lower.includes('.'))) fileStats.push({ path: fp, mtime: s.mtime });
-          } catch { continue; }
-        }
-        fileStats.sort((a, b) => b.mtime - a.mtime);
-        for (const { path: fp } of fileStats) await addImage(fp, `Spotlight - ${path.basename(fp)}`, 2);
-      } catch { continue; }
-    }
+    ]) { await scanFlatDir(ap, 'Spotlight', 2); }
+
+    // DesktopSpotlight — Windows 11 22H2+ stores desktop Spotlight images separately, priority 2
+    for (const dsp of [
+      path.join(process.env.LOCALAPPDATA||'', 'Packages', 'Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy', 'LocalState', 'DesktopSpotlight'),
+      path.join(process.env.LOCALAPPDATA||'', 'Packages', 'Microsoft.Windows.ContentDeliveryManager_8wekyb3d8bbwe', 'LocalState', 'DesktopSpotlight')
+    ]) { await scanFlatDir(dsp, 'Desktop Spotlight', 2); }
+
+    // IrisService (ContentDeliveryManager) — flat subfolder variant, priority 2
+    for (const isp of [
+      path.join(process.env.LOCALAPPDATA||'', 'Packages', 'Microsoft.Windows.ContentDeliveryManager_cw5n1h2txyewy', 'LocalState', 'IrisService'),
+      path.join(process.env.LOCALAPPDATA||'', 'Packages', 'Microsoft.Windows.ContentDeliveryManager_8wekyb3d8bbwe', 'LocalState', 'IrisService')
+    ]) { await scanFlatDir(isp, 'Spotlight', 2); }
+
+    // IrisService (Client.CBS) — the primary IrisService location on Windows 11 23H2+.
+    // Images live inside numbered subdirectories:
+    //   LocalCache\Microsoft\IrisService\<numeric-id>\<image-files>
+    // We scan one level of subdirectories inside IrisService so we catch all of them
+    // regardless of what numeric ID Windows assigned.
+    try {
+      const cbsIris = path.join(process.env.LOCALAPPDATA||'', 'Packages', 'MicrosoftWindows.Client.CBS_cw5n1h2txyewy', 'LocalCache', 'Microsoft', 'IrisService');
+      await fsp.access(cbsIris);
+      for (const entry of await fsp.readdir(cbsIris)) {
+        const sub = path.join(cbsIris, entry);
+        try {
+          if ((await fsp.stat(sub)).isDirectory()) await scanFlatDir(sub, 'Spotlight', 2);
+        } catch { continue; }
+      }
+    } catch {}
+
+    // Windows\Web\Wallpaper\Spotlight — static/cached Spotlight wallpapers written by Windows Update, priority 3
+    await scanFlatDir(
+      path.join(process.env.WINDIR || 'C:\\Windows', 'Web', 'Wallpaper', 'Spotlight'),
+      'Spotlight',
+      3
+    );
 
     spotlightImages.sort((a, b) => a.priority !== b.priority ? a.priority - b.priority : new Date(b.addedAt) - new Date(a.addedAt));
     return spotlightImages;
@@ -539,6 +610,50 @@ ipcMain.handle('open-file', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({ properties: ['openFile'], filters: [{ name: 'Images', extensions: ['jpg','jpeg','png','webp','gif','bmp'] }] });
   if (canceled || !filePaths?.length) return null;
   return addWallpaperFromPath(filePaths[0]);
+});
+
+// Open file dialog scoped to a specific album folder
+ipcMain.handle('open-file-to-album', async (e, albumId) => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    properties: ['openFile', 'multiSelections'],
+    filters: [{ name: 'Images', extensions: ['jpg','jpeg','png','webp','gif','bmp'] }],
+  });
+  if (canceled || !filePaths?.length) return null;
+  const results = [];
+  for (const fp of filePaths) results.push(await addWallpaperFromPath(fp, albumId));
+  return results;
+});
+
+// Download a discovered (Unsplash) image to the default save folder and set it as wallpaper
+ipcMain.handle('download-and-set-wallpaper', async (e, url, filename, downloadLocation) => {
+  const appSet = loadAppSettingsSync();
+  const albums = await loadAlbums();
+  const allAlbums = albums.albums || [];
+  if (!allAlbums.length) throw new Error('No folders added yet. Add a folder first.');
+
+  // Use configured default folder, fall back to first available
+  let album = allAlbums.find(a => a.id === appSet.defaultSaveFolderId) || allAlbums[0];
+
+  // Trigger Unsplash download endpoint (API compliance)
+  if (downloadLocation && UNSPLASH_ACCESS_KEY) {
+    fetch(downloadLocation, { headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` } })
+      .catch(err => console.error('Unsplash download trigger failed:', err));
+  }
+
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const buffer = await response.buffer();
+  const ext = path.extname(filename) || '.jpg';
+  const baseName = 'unsplash_' + Date.now() + ext;
+  const destPath = path.join(album.folder, baseName);
+  await fsp.writeFile(destPath, buffer);
+
+  const db = await loadDB();
+  const entry = { id: 'wp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7), path: destPath, name: baseName, favorite: false, addedAt: Date.now(), albumId: album.id };
+  db.wallpapers = db.wallpapers || []; db.wallpapers.push(entry); await saveDB(db);
+
+  await setAsWallpaper(destPath);
+  return { entry, albumName: album.name };
 });
 
 ipcMain.handle('set-wallpaper', async (e, filePath) => { await setAsWallpaper(filePath); return true; });

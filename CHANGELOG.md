@@ -5,6 +5,34 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3.6] - 2026-05-09
+
+### Added
+- **Per-folder "Add Image" button** — The global topbar "+ Add Image" button is replaced by a small `+` button that appears on hover for each folder in the sidebar. Clicking it opens a multi-file image picker and imports the selected images directly into that specific folder, bypassing the "current album" ambiguity. Supports selecting multiple images at once.
+- **Slideshow source selector** — The Slideshow view now shows a dropdown of all current folders plus an "All Albums" option, replacing the read-only label that reflected the last-viewed album. The selected source is used directly when clicking Start, making the slideshow scope explicit and controllable regardless of which gallery view is open.
+- **"Set" button in Discover** — Discovery cards now have a "Set" button alongside "Save". Clicking it downloads the image to the configured default save folder (see below) and immediately sets it as the desktop wallpaper — one click, no folder picker. Unsplash download compliance is maintained.
+- **Default Save Folder setting** — A new "Discover" section in Settings lets you choose which folder discovery images are auto-saved to when using the "Set" button. Falls back to the first available folder if not configured. Stored in `app-settings.json` as `defaultSaveFolderId`.
+- **Slideshow close warning** — When a slideshow is running and the user tries to close the app, a native dialog appears with three options: "Minimize to Background" (keeps the slideshow running), "Stop & Close" (stops the slideshow and exits), or "Cancel" (dismisses and returns to the app). No warning is shown when no slideshow is active.
+- **Accent color wheel** — A circular color picker (`<input type="color">`) now appears alongside the preset swatches in Settings. Selecting a custom color deselects preset swatches and applies the custom color live. Picking a preset swatch syncs the wheel to that color. The darker variant (`--c-acc2`) is derived automatically by darkening the chosen color by 15%.
+- **Spotlight refresh button** — A ↻ button appears in the topbar whenever the Spotlight view is active. Clicking it re-scans all Spotlight source paths and reloads the grid, so you can pull in newly downloaded images without leaving the view. The button spins while the scan is in progress and is hidden in all other views.
+
+### Fixed
+- **Spotlight images missing or feeling stale** — The spotlight scanner was checking three locations but missing several that Windows 11 actively uses for fresh images:
+  - `LockScreen_` folders inside `SystemData` only matched `.jpg` and `.png`, silently skipping `.jpeg` and the extension-less files Windows writes there (same format the Assets folder has always used).
+  - `DesktopSpotlight` subfolder (added in Windows 11 22H2) was not scanned at all — this is where the newest desktop Spotlight images land.
+  - `IrisService` under `MicrosoftWindows.Client.CBS_cw5n1h2txyewy\LocalCache\Microsoft\` (the primary IrisService location on Windows 11 23H2+) was not scanned. Images there sit inside numbered subdirectories; the scanner now walks one level deep to find them regardless of what numeric ID Windows assigned.
+  - `Windows\Web\Wallpaper\Spotlight` (static cached images written by Windows Update) was not scanned.
+  All four sources now use a unified `scanFlatDir` helper that matches `.jpg`, `.jpeg`, `.png`, and extension-less files above 200 KB, sorted newest-first.
+
+### Changed
+- **Light mode redesign** — The light theme palette is replaced with a warmer, lavender-tinted scheme (`#f2f0f9` background, `#fdfcff` panels) that is less clinical and easier on the eyes. Text uses deep purple-gray tones (`#1b1730` / `#48446a`) instead of near-black. Borders use transparent purple-tinted values for subtle depth. Cards in light mode gain a soft box-shadow. Sidebar and panels receive distinct background tints for better spatial layering.
+- Settings version label updated to **v0.3.6**.
+
+### Removed
+- **Global topbar "+ Add Image" button** — superseded by the per-folder add buttons. The DOM element is kept (hidden) for potential API compatibility.
+
+---
+
 ## [0.3.5] - 2026-05-09
 
 ### Fixed
