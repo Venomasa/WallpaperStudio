@@ -5,6 +5,36 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [0.3.7] - 2026-05-12
+
+### Added
+- **Pexels API integration** — All discovery features (Discover tab, Discovery Slideshow, Daily Wallpaper) now support Pexels in addition to Unsplash. Set `PEXELS_API_KEY` at build time via `inject-env.js`. Both keys are embedded in `build-config.json`. Either key alone is sufficient; having both unlocks the "Both" source option. Pexels attribution is shown on all cards and in the Discovery Slideshow credit line, compliant with Pexels guidelines.
+- **Per-feature Source selector** — Every API-dependent feature has a "Photo Source" dropdown: Discover tab (All / Unsplash / Pexels), Discovery Slideshow configuration (All / Unsplash / Pexels), Daily Wallpaper settings (Both / Unsplash / Pexels). The selector is hidden automatically when only one API key is configured.
+- **Discover tab — Source filter tabs** — When both keys are present, "All / Unsplash / Pexels" tabs appear in the Discover toolbar. Results from both sources are interleaved card-by-card in the grid.
+- **Discover cards — Source badge** — A small colour-coded badge (black for Unsplash, green for Pexels) appears next to the Set/Save/View buttons on each card, matching their height exactly. Replaces the old top-of-overlay badge position.
+- **Discovery Slideshow — true randomness & no repeats** — Uses `GET /photos/random` for Unsplash (no-topic mode) and a random curated page for Pexels. Seen photo IDs are tracked with source-prefixed keys (`u_id` / `p_id`) so the same image never repeats within a session. Stopping and restarting resets the seen-ID set.
+- **Discovery Slideshow — multi-source shuffle** — When "Both" sources are selected, each fetch batch merges Unsplash and Pexels photos and shuffles them together before queuing.
+- **Discovery Slideshow — discovery interval now in hours** — Interval options are 30 min, 1 h (default), 2 h, 4 h, 6 h, 12 h, 24 h. Previous short debug intervals (15 s, 30 s, 1 min, 5 min, 10 min) removed.
+- **Daily Wallpaper** — New scheduled-change feature (separate from Discovery Slideshow). Enable in Settings → Daily Wallpaper; configure a time (HH:MM), a photo source (Both/Unsplash/Pexels), and optional topics. A "Change Now" test button is available. Runs in the background even when the window is hidden; the tray menu shows the scheduled time and a "Change Wallpaper Now" item when enabled.
+- **Startup & Background settings** — New Settings section: "Start with Windows" (sets login item via `app.setLoginItemSettings`) and "Start Minimized to Tray" (launches hidden when auto-started). Both are persisted in `app-settings.json`.
+- **Minimize behaviour** — Pressing the OS `-` (minimize) button keeps the window in the taskbar as normal. The window is only fully hidden from the taskbar (via `mainWindow.hide()`) when a slideshow is actively running.
+- **Close guard always asks** — The `×` button now always shows a confirmation dialog regardless of whether a slideshow is running: "Minimize to Tray / Close / Cancel" (no slideshow) or "Minimize to Tray / Stop & Close / Cancel" (slideshow running). Minimizing from the dialog hides to tray without quitting.
+- **Tray — Start Slideshow submenu** — When no slideshow is running, "Start Slideshow" in the tray menu opens a submenu listing all configured folders. Clicking a folder starts the slideshow for that folder immediately, without opening the app window. Starting from the tray also stops any running Discovery Slideshow (and vice versa), preventing two simultaneous slideshows.
+- **Tray — improved menu** — Header label "🖼 Wallpaper Studio" at top (disabled, for identification). Daily Wallpaper section in tray shows scheduled time and "Change Wallpaper Now (Daily)" when enabled. Quit item stops all timers cleanly.
+
+### Fixed
+- **Slideshow changed wallpaper immediately on Start** — `startSlideshow()` previously called `setAsWallpaper(arr[0])` before the first interval tick. It now starts the timer without changing the current wallpaper; the first change happens after one full interval.
+- **Double slideshow bug** — Starting a slideshow from the tray submenu while one was already running (or vice versa) could run two timers simultaneously. All start paths now call `stopSlideshow()` / `stopDiscoverySlideshow()` before starting.
+- **Discovery Slideshow credit showed hardcoded "Unsplash"** — Credit line now reads the `source` field from the tick payload and shows the correct service name (Unsplash or Pexels).
+- **Sidebar folder + button removed** — The `+` button that appeared on hover for each folder in the sidebar has been removed. Use the "Add Images" button in the gallery toolbar instead.
+
+### Changed
+- `inject-env.js` now reads and embeds both `UNSPLASH_ACCESS_KEY` and `PEXELS_API_KEY`.
+- Default `minimizeToTray` setting changed from `false` to `true`.
+- `discoverySlideshowSeenIds` is reset to a new `Set()` on every `startDiscoverySlideshow` call and on `stopDiscoverySlideshow`.
+
+---
+
 ## [0.3.6] - 2026-05-09
 
 ### Added

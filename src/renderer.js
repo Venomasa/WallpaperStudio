@@ -4,18 +4,24 @@
 // App State
 // ─────────────────────────────────────────────────────────────────────────────
 const S = {
-  view: 'empty',           // 'empty' | 'gallery' | 'discover' | 'settings' | 'slideshow'
+  view: 'empty',
   currentAlbumId: null,
-  galleryMode: 'albums',   // 'albums' | 'favorites' | 'spotlight'  (within gallery view)
+  galleryMode: 'albums',
   albums: [],
   unsplashKey: '',
+  pexelsKey: '',
+  discoverSource: 'all',   // 'unsplash' | 'pexels' | 'all'
   unsplashPage: 1,
+  pexelsPage: 1,
   unsplashCatIdx: 0,
   unsplashQuery: '',
   unsplashLoading: false,
   discoverReady: false,
   slideshowRunning: false,
-  settingsSnapshot: null,  // settings as they were when user entered Settings view
+  discoverySlideshowRunning: false,
+  discoverySlideshowTopics: [],
+  discoverySlideshowSource: 'all',  // 'unsplash' | 'pexels' | 'all'
+  settingsSnapshot: null,
 };
 
 const CATS = [
@@ -89,14 +95,32 @@ function applySettings(settings) {
 function populateSettingsUI(settings) {
   if (!settings) return;
 
-  const chkHw = $('chk-hw');
-  chkHw.checked = settings.hardwareAcceleration === true;
-  $('hw-notice').classList.remove('on');
-
   $('sel-theme').value     = settings.theme || 'dark';
   $('sel-thumbsize').value = String(settings.thumbnailSize || 210);
   $('chk-names').checked   = settings.showImageNames === true;
   $('ss-sel-interval').value = String(settings.slideshowInterval || 60000);
+
+  // Startup settings
+  const chkStartWindows = $('chk-start-windows');
+  if (chkStartWindows) chkStartWindows.checked = settings.startWithWindows === true;
+  const chkStartMin = $('chk-start-minimized');
+  if (chkStartMin) chkStartMin.checked = settings.startMinimized === true;
+
+  // Daily wallpaper settings
+  const chkDaily = $('chk-daily-wallpaper');
+  if (chkDaily) {
+    chkDaily.checked = settings.dailyWallpaperEnabled === true;
+    toggleDailyRows(chkDaily.checked);
+  }
+  const inpTime = $('inp-daily-time');
+  if (inpTime) inpTime.value = settings.dailyWallpaperTime || '08:00';
+  const inpTopics = $('inp-daily-topics');
+  if (inpTopics) inpTopics.value = settings.dailyWallpaperTopics || '';
+  const selDailySrc = $('sel-daily-source');
+  if (selDailySrc) selDailySrc.value = settings.dailyWallpaperSource || 'all';
+  // Hide source selector if only one source is available
+  const rowDailySrc = $('row-daily-source');
+  if (rowDailySrc) rowDailySrc.style.display = (S.unsplashKey && S.pexelsKey) ? '' : 'none';
 
   // Accent swatches + wheel
   const savedAccent = settings.accentColor || '#6366f1';
@@ -123,6 +147,13 @@ function populateSettingsUI(settings) {
   }
 }
 
+function toggleDailyRows(enabled) {
+  ['row-daily-time', 'row-daily-source', 'row-daily-topics', 'row-daily-test'].forEach(id => {
+    const el = $(id);
+    if (el) el.classList.toggle('hidden', !enabled);
+  });
+}
+
 // Collect current values from settings UI controls into an object
 function collectSettingsUI(prev) {
   const activeSwatch = $('swatches').querySelector('.swatch.active');
@@ -131,14 +162,19 @@ function collectSettingsUI(prev) {
   const accentDark = activeSwatch ? activeSwatch.dataset.dark : darkenHex(accentHex, 0.15);
   return {
     ...prev,
-    hardwareAcceleration: $('chk-hw').checked,
-    theme:                $('sel-theme').value,
-    accentColor:          accentHex,
-    accentColorDark:      accentDark,
-    thumbnailSize:        parseInt($('sel-thumbsize').value, 10),
-    showImageNames:       $('chk-names').checked,
-    slideshowInterval:    parseInt($('ss-sel-interval').value, 10),
-    defaultSaveFolderId:  $('sel-default-folder')?.value || prev.defaultSaveFolderId || '',
+    theme:                  $('sel-theme').value,
+    accentColor:            accentHex,
+    accentColorDark:        accentDark,
+    thumbnailSize:          parseInt($('sel-thumbsize').value, 10),
+    showImageNames:         $('chk-names').checked,
+    slideshowInterval:      parseInt($('ss-sel-interval').value, 10),
+    defaultSaveFolderId:    $('sel-default-folder')?.value || prev.defaultSaveFolderId || '',
+    startWithWindows:       $('chk-start-windows')?.checked ?? prev.startWithWindows ?? false,
+    startMinimized:         $('chk-start-minimized')?.checked ?? prev.startMinimized ?? false,
+    dailyWallpaperEnabled:  $('chk-daily-wallpaper')?.checked ?? prev.dailyWallpaperEnabled ?? false,
+    dailyWallpaperTime:     $('inp-daily-time')?.value || prev.dailyWallpaperTime || '08:00',
+    dailyWallpaperSource:   $('sel-daily-source')?.value || prev.dailyWallpaperSource || 'all',
+    dailyWallpaperTopics:   $('inp-daily-topics')?.value ?? prev.dailyWallpaperTopics ?? '',
   };
 }
 
@@ -287,6 +323,22 @@ async function ctxUnfav() {
   } catch { toast('Failed', 'error'); }
 }
 
+async function ctxExport() {
+  hideCtxMenu();
+  try {
+    const dest = await window.wp.exportImage(_ctx.w.path);
+    if (dest) toast('Exported to: ' + dest.split('\\').pop());
+  } catch { toast('Export failed', 'error'); }
+}
+
+async function ctxSetWallpaper() {
+  hideCtxMenu();
+  try {
+    await window.wp.setWallpaper(_ctx.w.path);
+    toast('Wallpaper set!');
+  } catch { toast('Failed to set wallpaper', 'error'); }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Sidebar
 // ─────────────────────────────────────────────────────────────────────────────
@@ -301,23 +353,6 @@ function buildFoldersList() {
     span.className = 'folder-name';
     span.textContent = a.name;
     span.title = a.folder || '';
-
-    // + Add images button (folder-scoped)
-    const addImg = document.createElement('button');
-    addImg.className = 'folder-add-img';
-    addImg.textContent = '+';
-    addImg.title = 'Add images to "' + a.name + '"';
-    addImg.onclick = async e => {
-      e.stopPropagation();
-      try {
-        const results = await window.wp.openFileToAlbum(a.id);
-        if (!results?.length) return;
-        if (S.view === 'gallery' && S.galleryMode === 'albums' && S.currentAlbumId === a.id) {
-          renderGallery();
-        }
-        toast(results.length === 1 ? 'Image added to "' + a.name + '"' : results.length + ' images added to "' + a.name + '"');
-      } catch (err) { toast('Failed to add image', 'error'); }
-    };
 
     const del = document.createElement('button');
     del.className = 'folder-del';
@@ -339,9 +374,8 @@ function buildFoldersList() {
     };
 
     div.appendChild(span);
-    div.appendChild(addImg);
     div.appendChild(del);
-    div.onclick = async e => { if (e.target === del || e.target === addImg) return; await navigateTo('gallery', 'albums', a.id); };
+    div.onclick = async e => { if (e.target === del) return; await navigateTo('gallery', 'albums', a.id); };
     D.foldersList.appendChild(div);
   });
 }
@@ -397,11 +431,22 @@ async function navigateTo(view, galleryMode, albumId) {
 
   // View-specific init
   if (view === 'discover') {
-    if (!S.discoverReady && S.unsplashKey) { S.discoverReady = true; loadDiscover(); }
+    if (!S.discoverReady && (S.unsplashKey || S.pexelsKey)) { S.discoverReady = true; loadDiscover(); }
     return;
   }
 
   if (view === 'gallery') {
+    // Show toolbar only for album mode (not spotlight/favorites)
+    const toolbar = $('gallery-toolbar');
+    const folderNameEl = $('gallery-folder-name');
+    if (toolbar) {
+      const isAlbum = (galleryMode || S.galleryMode) === 'albums' && S.currentAlbumId;
+      toolbar.classList.toggle('visible', !!isAlbum);
+      if (isAlbum && folderNameEl) {
+        const album = S.albums.find(a => a.id === S.currentAlbumId);
+        folderNameEl.textContent = album ? album.name : '';
+      }
+    }
     await renderGallery();
     return;
   }
@@ -444,6 +489,9 @@ async function navigateTo(view, galleryMode, albumId) {
       else if (S.galleryMode === 'albums' && S.currentAlbumId) srcSel.value = S.currentAlbumId;
     }
     updateSlideshowUI();
+    // Re-check Discovery Slideshow availability and repopulate selects
+    initDiscoverySlideshow();
+    populateDiscoverySaveFolderSelect();
     return;
   }
 }
@@ -561,6 +609,220 @@ function removeCard(card) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Discovery Slideshow UI
+// ─────────────────────────────────────────────────────────────────────────────
+function renderDiscoverySlideshowTopics() {
+  const wrap = $('disc-ss-topics-wrap');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  if (!S.discoverySlideshowTopics.length) {
+    const hint = document.createElement('span');
+    hint.style.cssText = 'font-size:12px;color:var(--c-txt3);font-style:italic';
+    hint.textContent = 'No topics — showing popular wallpapers';
+    wrap.appendChild(hint);
+    return;
+  }
+  S.discoverySlideshowTopics.forEach((topic, idx) => {
+    const tag = document.createElement('span');
+    tag.className = 'disc-ss-topic-tag';
+    tag.innerHTML = `${topic}<button class="tag-rm" title="Remove">&#x2715;</button>`;
+    tag.querySelector('.tag-rm').onclick = () => {
+      S.discoverySlideshowTopics.splice(idx, 1);
+      renderDiscoverySlideshowTopics();
+    };
+    wrap.appendChild(tag);
+  });
+}
+
+function updateDiscoverySlideshowUI(running, loading) {
+  const startBtn  = $('btn-disc-ss-start');
+  const stopBtn   = $('btn-disc-ss-stop');
+  const favBtn    = $('btn-disc-ss-fav');
+  const nextBtn   = $('btn-disc-ss-next');
+  const statusTxt = $('disc-ss-status-text');
+  const dot       = $('disc-ss-dot');
+  if (!startBtn) return;
+
+  if (loading) {
+    startBtn.style.display = 'none';
+    stopBtn.style.display  = 'none';
+    if (favBtn)  favBtn.style.display  = 'none';
+    if (nextBtn) nextBtn.style.display = 'none';
+    if (statusTxt) statusTxt.textContent = 'Fetching images…';
+    if (dot) { dot.classList.remove('running'); }
+    return;
+  }
+  startBtn.style.display = running ? 'none'        : 'inline-flex';
+  stopBtn.style.display  = running ? 'inline-flex' : 'none';
+  if (favBtn)  favBtn.style.display  = running ? 'inline-flex' : 'none';
+  if (nextBtn) nextBtn.style.display = running ? 'inline-flex' : 'none';
+  if (dot) dot.classList.toggle('running', running);
+  if (statusTxt && !running) statusTxt.textContent = 'Discovery Slideshow is stopped';
+}
+
+function populateDiscoverySaveFolderSelect() {
+  const sel = $('disc-ss-save-folder');
+  if (!sel) return;
+  // Keep first option (temp only)
+  while (sel.options.length > 1) sel.remove(1);
+  S.albums.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = a.name;
+    sel.appendChild(opt);
+  });
+  // Restore saved setting
+  window.wp.getAppSettings().then(settings => {
+    if (settings?.discoverySaveFolderId) sel.value = settings.discoverySaveFolderId;
+  }).catch(() => {});
+  sel.onchange = () => {
+    window.wp.saveAppSettings({ discoverySaveFolderId: sel.value }).catch(() => {});
+  };
+}
+
+function initDiscoverySlideshow() {
+  const noKey = $('disc-ss-no-key');
+  const ui    = $('disc-ss-ui');
+  if (!S.unsplashKey && !S.pexelsKey) {
+    if (noKey) noKey.style.display = '';
+    if (ui)    ui.style.display    = 'none';
+    return;
+  }
+  if (noKey) noKey.style.display = 'none';
+  if (ui)    ui.style.display    = '';
+
+  // Source selector — hide options for keys that aren't present
+  const srcSel = $('disc-ss-source');
+  const srcRow = $('row-disc-ss-source');
+  if (srcSel) {
+    if (!S.unsplashKey || !S.pexelsKey) {
+      // Only one source available — hide selector, force to available source
+      if (srcRow) srcRow.style.display = 'none';
+      S.discoverySlideshowSource = S.unsplashKey ? 'unsplash' : 'pexels';
+    } else {
+      if (srcRow) srcRow.style.display = '';
+      srcSel.value = S.discoverySlideshowSource;
+      srcSel.onchange = () => { S.discoverySlideshowSource = srcSel.value; };
+    }
+  }
+
+  renderDiscoverySlideshowTopics();
+  populateDiscoverySaveFolderSelect();
+
+  // Add topic
+  $('btn-disc-ss-add-topic').onclick = () => {
+    const inp = $('disc-ss-topic-in');
+    const val = inp.value.trim();
+    if (val && !S.discoverySlideshowTopics.includes(val)) {
+      S.discoverySlideshowTopics.push(val);
+      renderDiscoverySlideshowTopics();
+    }
+    inp.value = '';
+    inp.focus();
+  };
+  $('disc-ss-topic-in').addEventListener('keydown', e => {
+    if (e.key === 'Enter') $('btn-disc-ss-add-topic').click();
+  });
+
+  // Start
+  $('btn-disc-ss-start').onclick = () => {
+    const intervalMs = parseInt($('disc-ss-interval').value, 10) || 3600000;
+    const topics = S.discoverySlideshowTopics.join(',');
+    const source = S.discoverySlideshowSource || 'all';
+    window.wp.startDiscoverySlideshow(intervalMs, topics, source);
+    S.discoverySlideshowRunning = true;
+    updateDiscoverySlideshowUI(true, true);
+    toast('Discovery Slideshow starting…');
+  };
+
+  // Stop
+  $('btn-disc-ss-stop').onclick = () => {
+    window.wp.stopDiscoverySlideshow();
+    S.discoverySlideshowRunning = false;
+    updateDiscoverySlideshowUI(false, false);
+    const thumb = $('disc-ss-thumb');
+    if (thumb) { thumb.src = ''; thumb.classList.remove('visible'); }
+    const credit = $('disc-ss-credit'); if (credit) credit.innerHTML = '';
+    toast('Discovery Slideshow stopped');
+  };
+
+  // Skip to next
+  const nextBtn = $('btn-disc-ss-next');
+  if (nextBtn) nextBtn.onclick = () => {
+    window.wp.discoverySlideshowChangeNow();
+    toast('Loading next photo…');
+  };
+
+  // Favourite current
+  const favBtn = $('btn-disc-ss-fav');
+  if (favBtn) favBtn.onclick = async () => {
+    favBtn.disabled = true;
+    try {
+      const ok = await window.wp.discoverySlideshowFavourite();
+      toast(ok ? '★ Photo saved to favourites' : 'Nothing to favourite yet', ok ? 'info' : 'error');
+    } catch { toast('Could not save photo', 'error'); }
+    finally { favBtn.disabled = false; }
+  };
+
+  // ── Events from main ──────────────────────────────────────────────────────
+  window.wp.onDiscoverySlideshowStatus(({ running, loading }) => {
+    S.discoverySlideshowRunning = running;
+    updateDiscoverySlideshowUI(running, loading);
+  });
+
+  window.wp.onDiscoverySlideshowTick(info => {
+    const txt = $('disc-ss-status-text');
+    if (txt) {
+      if (info.isLoading) {
+        txt.textContent = info.description || 'Waiting for download…';
+      } else {
+        txt.textContent = info.photographer ? 'Photo by ' + info.photographer : (info.description || 'Live wallpaper');
+      }
+    }
+    const thumb = $('disc-ss-thumb');
+    if (thumb && info.thumbUrl) { thumb.src = info.thumbUrl; thumb.classList.add('visible'); }
+    const credit = $('disc-ss-credit');
+    if (credit) {
+      if (info.photographer && !info.isLoading) {
+        const sourceLabel = info.source || 'Unsplash';
+        const link = info.photoPageUrl
+          ? `<a href="${info.photoPageUrl}" target="_blank">${info.photographer}</a>`
+          : info.photographer;
+        credit.innerHTML = `Photo by ${link} on ${sourceLabel}`;
+      } else if (info.isLoading) {
+        credit.innerHTML = '<em style="color:var(--c-txt3)">Downloading next…</em>';
+      }
+    }
+  });
+
+  window.wp.onDiscoverySlideshowError(msg => {
+    S.discoverySlideshowRunning = false;
+    updateDiscoverySlideshowUI(false, false);
+    toast(msg, 'error');
+  });
+
+  if (window.wp.onDiscoverySlideshowFavourited) {
+    window.wp.onDiscoverySlideshowFavourited(({ name }) => {
+      toast(`★ Saved: ${name}`);
+    });
+  }
+
+  if (window.wp.onDailyWallpaperChanged) {
+    window.wp.onDailyWallpaperChanged(({ photographer }) => {
+      toast(`📅 Daily wallpaper updated${photographer ? ' — ' + photographer : ''}`);
+    });
+  }
+
+  // Sync status on (re)enter
+  window.wp.getDiscoverySlideshowStatus().then(status => {
+    if (status) {
+      S.discoverySlideshowRunning = status.running;
+      updateDiscoverySlideshowUI(status.running, false);
+    }
+  }).catch(() => {});
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Slideshow UI helpers
 // ─────────────────────────────────────────────────────────────────────────────
 function updateSlideshowUI() {
@@ -626,11 +888,29 @@ function initSettingsUI() {
     else delete document.documentElement.dataset.theme;
   });
 
-  // HW accel notice
-  $('chk-hw').addEventListener('change', () => {
-    const origHw = S.settingsSnapshot ? S.settingsSnapshot.hardwareAcceleration === true : false;
-    $('hw-notice').classList.toggle('on', $('chk-hw').checked !== origHw);
-  });
+  // Daily wallpaper toggle — show/hide sub-rows
+  const chkDailyEl = $('chk-daily-wallpaper');
+  if (chkDailyEl) {
+    chkDailyEl.addEventListener('change', () => toggleDailyRows(chkDailyEl.checked));
+  }
+
+  // Daily test button
+  const btnDailyTest = $('btn-daily-test');
+  if (btnDailyTest) {
+    btnDailyTest.onclick = async () => {
+      btnDailyTest.disabled = true;
+      btnDailyTest.textContent = 'Fetching…';
+      try {
+        // Save current settings first so triggerDailyWallpaper uses latest topics
+        const cur = collectSettingsUI(S.settingsSnapshot || {});
+        await window.wp.saveAppSettings(cur);
+        await window.wp.triggerDailyWallpaperNow();
+        toast('Daily wallpaper updated!');
+      } catch { toast('Failed to change wallpaper', 'error'); }
+      btnDailyTest.disabled = false;
+      btnDailyTest.textContent = 'Change Now';
+    };
+  }
 
   // Save
   $('btn-settings-save').onclick = async () => {
@@ -654,10 +934,10 @@ function initSettingsUI() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Discover / Unsplash
+// Discover — fetch helpers (Unsplash + Pexels)
 // ─────────────────────────────────────────────────────────────────────────────
 async function fetchUnsplash(q, topic, page) {
-  if (!S.unsplashKey) return null;
+  if (!S.unsplashKey) return [];
   const pp = 24;
   let url;
   if (q)          url = `https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&per_page=${pp}&page=${page}&orientation=landscape`;
@@ -665,41 +945,77 @@ async function fetchUnsplash(q, topic, page) {
   else            url = `https://api.unsplash.com/photos?per_page=${pp}&page=${page}&order_by=popular`;
   try {
     const res = await fetch(url, { headers: { Authorization: `Client-ID ${S.unsplashKey}` } });
-    if (res.status === 401) { toast('Invalid Unsplash API key', 'error'); return null; }
-    if (!res.ok) return null;
+    if (res.status === 401) { toast('Invalid Unsplash API key', 'error'); return []; }
+    if (!res.ok) return [];
     const data = await res.json();
-    return Array.isArray(data) ? data : (data.results ?? null);
-  } catch { return null; }
+    const photos = Array.isArray(data) ? data : (data.results ?? []);
+    return photos.map(p => ({ _src: 'unsplash', ...p }));
+  } catch { return []; }
 }
 
+async function fetchPexels(q, page) {
+  if (!S.pexelsKey) return [];
+  const pp = 24;
+  let url;
+  if (q) url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(q)}&per_page=${pp}&page=${page}&orientation=landscape`;
+  else   url = `https://api.pexels.com/v1/curated?per_page=${pp}&page=${page}`;
+  try {
+    const res = await fetch(url, { headers: { Authorization: S.pexelsKey } });
+    if (res.status === 401) { toast('Invalid Pexels API key', 'error'); return []; }
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.photos ?? []).map(p => ({ _src: 'pexels', ...p }));
+  } catch { return []; }
+}
+
+// Build a normalised photo card for any source
 function makeDiscCard(photo) {
+  const isPexels = photo._src === 'pexels';
+
+  // Normalise fields
+  const thumbUrl   = isPexels ? (photo.src?.medium || photo.src?.small || '') : (photo.urls?.small || '');
+  const fullUrl    = isPexels ? (photo.src?.original || photo.src?.large2x || photo.src?.large || '') : (photo.urls?.full || photo.urls?.regular || '');
+  const pageUrl    = isPexels ? (photo.url || '') : (photo.links?.html || '');
+  const dlLocation = isPexels ? null : photo.links?.download_location;
+  const photographer = isPexels ? (photo.photographer || 'Unknown') : (photo.user?.name || 'Unknown');
+  const photographerUrl = isPexels ? (photo.photographer_url || '') : (photo.user?.links?.html || '');
+  const sourceName = isPexels ? 'Pexels' : 'Unsplash';
+  const sourceUrl  = isPexels ? 'https://www.pexels.com' : 'https://unsplash.com';
+  const altText    = photo.alt || photo.alt_description || '';
+  const fileName   = (isPexels ? 'pexels_' : 'unsplash_') + photo.id + '.jpg';
+
   const card = document.createElement('div');
   card.className = 'disc-card';
 
   const img = document.createElement('img');
   img.className = 'disc-thumb';
-  img.alt = photo.alt_description || '';
-  img.dataset.src = photo.urls.small;
+  img.alt = altText;
+  img.dataset.src = thumbUrl;
   img.onclick = () => {
-    const creditHtml = `Photo by <a href="${photo.user.links.html}?utm_source=wallpaper_studio&utm_medium=referral" target="_blank" style="color:rgba(255,255,255,.8)">${photo.user.name}</a> on <a href="https://unsplash.com/?utm_source=wallpaper_studio&utm_medium=referral" target="_blank" style="color:rgba(255,255,255,.8)">Unsplash</a>`;
-    openLightbox(photo.urls.full || photo.urls.regular, creditHtml);
+    const creditHtml = `Photo by <a href="${photographerUrl}?utm_source=wallpaper_studio&utm_medium=referral" target="_blank" style="color:rgba(255,255,255,.8)">${photographer}</a> on <a href="${sourceUrl}/?utm_source=wallpaper_studio&utm_medium=referral" target="_blank" style="color:rgba(255,255,255,.8)">${sourceName}</a>`;
+    openLightbox(fullUrl, creditHtml);
   };
 
   const over = document.createElement('div');
   over.className = 'disc-over';
 
+  // Source badge
+  const badge = document.createElement('span');
+  badge.className = 'disc-source-badge disc-source-' + (isPexels ? 'pexels' : 'unsplash');
+  badge.textContent = sourceName;
+
   const credit = document.createElement('div');
   credit.className = 'disc-credit';
-  credit.innerHTML = `<a href="${photo.user.links.html}?utm_source=wallpaper_studio&utm_medium=referral" target="_blank" style="color:inherit;text-decoration:none">${photo.user.name}</a> on Unsplash`;
+  credit.innerHTML = `<a href="${photographerUrl}?utm_source=wallpaper_studio&utm_medium=referral" target="_blank" style="color:inherit;text-decoration:none">${photographer}</a> on ${sourceName}`;
 
   const rowBtns = document.createElement('div');
   rowBtns.style.cssText = 'display:flex;gap:6px;align-items:center;';
 
   const viewBtn = document.createElement('a');
   viewBtn.className = 'disc-view-btn';
-  viewBtn.href = `${photo.links.html}?utm_source=wallpaper_studio&utm_medium=referral`;
+  viewBtn.href = `${pageUrl}?utm_source=wallpaper_studio&utm_medium=referral`;
   viewBtn.target = '_blank';
-  viewBtn.title = 'View on Unsplash';
+  viewBtn.title = `View on ${sourceName}`;
   viewBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`;
   viewBtn.onclick = e => e.stopPropagation();
 
@@ -713,7 +1029,7 @@ function makeDiscCard(photo) {
       if (!S.albums?.length) { toast('Add a local folder first', 'error'); saveBtn.disabled = false; saveBtn.textContent = 'Save'; return; }
       const dest = S.albums.length === 1 ? S.albums[0] : await pickAlbum(S.albums);
       if (!dest) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; return; }
-      await window.wp.downloadImageUrl(photo.urls.full, photo.id + '.jpg', dest.id, photo.links.download_location);
+      await window.wp.downloadImageUrl(fullUrl, fileName, dest.id, dlLocation);
       saveBtn.textContent = 'Saved';
       saveBtn.style.cssText = 'background:#22c55e;color:#fff';
       toast('Saved to "' + dest.name + '"');
@@ -732,7 +1048,7 @@ function makeDiscCard(photo) {
     if (!S.albums?.length) { toast('Add a local folder first', 'error'); return; }
     setBtn.disabled = true; setBtn.textContent = '...';
     try {
-      const result = await window.wp.downloadAndSetWallpaper(photo.urls.full, photo.id + '.jpg', photo.links.download_location);
+      const result = await window.wp.downloadAndSetWallpaper(fullUrl, fileName, dlLocation);
       setBtn.textContent = 'Set ✓';
       setBtn.style.cssText = 'background:var(--c-acc);color:#fff';
       toast('Wallpaper set! Saved to "' + result.albumName + '"');
@@ -742,6 +1058,7 @@ function makeDiscCard(photo) {
     }
   };
 
+  rowBtns.appendChild(badge);
   rowBtns.appendChild(viewBtn);
   rowBtns.appendChild(setBtn);
   rowBtns.appendChild(saveBtn);
@@ -762,22 +1079,38 @@ async function loadDiscover(more = false) {
 
   if (!more) {
     S.unsplashPage = 1;
-    grid.innerHTML = '<div class="disc-loading">Loading wallpapers...</div>';
+    S.pexelsPage   = 1;
+    grid.innerHTML = '<div class="disc-loading">Loading wallpapers…</div>';
   } else {
     S.unsplashPage++;
+    S.pexelsPage++;
   }
 
-  const cat    = CATS[S.unsplashCatIdx];
-  const q      = S.unsplashQuery || cat.query;
-  const topic  = S.unsplashQuery ? null : cat.topic;
-  const photos = await fetchUnsplash(q, topic, S.unsplashPage);
+  const cat   = CATS[S.unsplashCatIdx];
+  const q     = S.unsplashQuery || cat.query;
+  const topic = S.unsplashQuery ? null : cat.topic;
+
+  // Fetch from active sources
+  const src = S.discoverSource;
+  const [unsplashPhotos, pexelsPhotos] = await Promise.all([
+    (src === 'pexels') ? Promise.resolve([]) : fetchUnsplash(q, topic, S.unsplashPage),
+    (src === 'unsplash') ? Promise.resolve([]) : fetchPexels(q, S.pexelsPage),
+  ]);
+
+  // Interleave results for a mixed feed
+  const merged = [];
+  const maxLen = Math.max(unsplashPhotos.length, pexelsPhotos.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (i < unsplashPhotos.length) merged.push(unsplashPhotos[i]);
+    if (i < pexelsPhotos.length)   merged.push(pexelsPhotos[i]);
+  }
 
   if (!more) grid.innerHTML = '';
-  if (!photos || photos.length === 0) {
+  if (!merged.length) {
     if (!more) grid.innerHTML = '<div class="disc-empty">No results. Try a different search.</div>';
   } else {
     const frag = document.createDocumentFragment();
-    photos.forEach(p => frag.appendChild(makeDiscCard(p)));
+    merged.forEach(p => frag.appendChild(makeDiscCard(p)));
     grid.appendChild(frag);
     grid.querySelectorAll('img[data-src]').forEach(img => imgObs.observe(img));
     if (moreBtn) moreBtn.style.display = 'flex';
@@ -787,9 +1120,28 @@ async function loadDiscover(more = false) {
 }
 
 function initDiscover() {
-  if (S.unsplashKey) {
+  const hasAnyKey = S.unsplashKey || S.pexelsKey;
+  if (hasAnyKey) {
     $('disc-setup').style.display = 'none';
     $('disc-main').style.display  = 'block';
+  }
+
+  // Source filter tabs — only show if both keys present
+  const srcTabs = $('disc-source-tabs');
+  if (srcTabs) {
+    if (S.unsplashKey && S.pexelsKey) {
+      srcTabs.style.display = 'flex';
+      srcTabs.querySelectorAll('[data-src]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.src === S.discoverSource);
+        btn.onclick = () => {
+          S.discoverSource = btn.dataset.src;
+          srcTabs.querySelectorAll('[data-src]').forEach(b => b.classList.toggle('active', b.dataset.src === S.discoverSource));
+          loadDiscover();
+        };
+      });
+    } else {
+      srcTabs.style.display = 'none';
+    }
   }
 
   const chipsEl = $('disc-chips');
@@ -857,6 +1209,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Unsplash key ──
   try { S.unsplashKey = await window.wp.getUnsplashKey() || ''; } catch {}
+  try { S.pexelsKey   = await window.wp.getPexelsKey()   || ''; } catch {}
+  if (!S.discoverReady && (S.unsplashKey || S.pexelsKey)) { S.discoverReady = true; loadDiscover(); }
 
   // ── Live settings updates from main process ──
   window.wp.onSettingsUpdated(settings => { applySettings(settings); S.settingsSnapshot = settings; });
@@ -871,7 +1225,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   D.lightbox.addEventListener('click', e => { if (e.target === D.lightbox) closeLightbox(); });
 
   // ── Context menu ──
+  $('ctx-set').onclick     = ctxSetWallpaper;
   $('ctx-copy').onclick    = ctxCopy;
+  $('ctx-export').onclick  = ctxExport;
   $('ctx-delete').onclick  = ctxDelete;
   $('ctx-details').onclick = ctxDetails;
   $('ctx-unfav').onclick   = ctxUnfav;
@@ -936,7 +1292,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Read selected source from dropdown
     const srcSel = $('ss-source-sel');
     const albumId = srcSel?.value || null;
-    window.wp.startSlideshow(intervalMs, albumId);
+    const shuffle = $('chk-ss-shuffle')?.checked || false;
+    window.wp.startSlideshow(intervalMs, albumId, shuffle);
     S.slideshowRunning = true;
     updateSlideshowUI();
     const srcLabel = albumId ? (S.albums.find(a => a.id === albumId)?.name || 'selected album') : 'all albums';
@@ -949,11 +1306,39 @@ document.addEventListener('DOMContentLoaded', async () => {
     toast('Slideshow stopped');
   };
 
+  // ── Gallery: Add Images to current folder button ──
+  $('btn-add-images-to-folder').onclick = async () => {
+    if (!S.currentAlbumId) { toast('No folder selected', 'error'); return; }
+    try {
+      const results = await window.wp.openFileToAlbum(S.currentAlbumId);
+      if (!results?.length) return;
+      renderGallery();
+      toast(results.length === 1 ? 'Image added' : results.length + ' images added');
+    } catch { toast('Failed to add images', 'error'); }
+  };
+
   // ── Discover ──
   initDiscover();
 
+  // ── Discovery Slideshow ──
+  initDiscoverySlideshow();
+
   // ── IPC refresh (after settings change etc.) ──
   if (window.wp.onRefresh) window.wp.onRefresh(() => { if (S.view === 'gallery') renderGallery(); });
+
+  // ── Slideshow events from main process ──
+  if (window.wp.onSlideshowTick) {
+    window.wp.onSlideshowTick(info => {
+      const txt = $('ss-status-text');
+      if (txt && S.slideshowRunning) txt.textContent = 'Now: ' + (info.name || '—');
+    });
+  }
+  if (window.wp.onSlideshowStopped) {
+    window.wp.onSlideshowStopped(() => {
+      S.slideshowRunning = false;
+      updateSlideshowUI();
+    });
+  }
 
   // ── Initial load ──
   S.albums = await window.wp.getAlbums() || [];

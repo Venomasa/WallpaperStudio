@@ -73,7 +73,7 @@ a   { color: inherit; }
 /* ── Topbar ── */
 #topbar {
   flex-shrink: 0; height: var(--topbar-h);
-  background: rgba(20,20,24,.96); backdrop-filter: blur(14px);
+  background: rgba(20,20,24,.99);
   border-bottom: 1px solid var(--c-border);
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 16px; gap: 12px; z-index: 100;
@@ -139,7 +139,7 @@ a   { color: inherit; }
 .folder-del:hover { background: rgba(239,68,68,.15); color: var(--c-red) !important; }
 .folder-add-img:hover { background: rgba(99,102,241,.15); color: var(--c-acc) !important; }
 .nav-item.active .folder-del,
-.nav-item.active .folder-add-img { color: rgba(255,255,255,.5); }
+.nav-item.active .folder-add-img { display: none; }
 
 /* ═══════════════════════════════════════════════════════════
    CONTENT AREA
@@ -206,6 +206,12 @@ button:active { transform: scale(.97); }
 /* ═══════════════════════════════════════════════════════════
    GALLERY
 ═══════════════════════════════════════════════════════════ */
+#view-gallery { flex-direction: column; }
+#gallery-toolbar {
+  display: none; align-items: center; gap: 10px;
+  padding: 10px 22px 0; flex-shrink: 0;
+}
+#gallery-toolbar.visible { display: flex; }
 #gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(var(--thumb-min), 1fr));
@@ -276,6 +282,15 @@ html.show-names .card-name { display: block; }
 }
 .disc-search input:focus { border-color: var(--c-acc); }
 #disc-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.disc-source-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; letter-spacing: .3px;
+  padding: 0 10px; border-radius: var(--r-sm); height: 28px;
+  flex-shrink: 0; opacity: .95; border: 1px solid transparent;
+}
+.disc-source-unsplash { background: rgba(0,0,0,.55); color: #fff; border-color: rgba(255,255,255,.2); }
+.disc-source-pexels   { background: rgba(5,160,129,.75); color: #fff; border-color: rgba(255,255,255,.2); }
+#disc-source-tabs { display: flex; gap: 6px; flex-shrink: 0; }
 .chip {
   background: var(--c-bg2); border: 1px solid var(--c-border);
   border-radius: 20px; padding: 5px 13px;
@@ -407,6 +422,9 @@ html.show-names .card-name { display: block; }
 }
 .sel:focus { border-color: var(--c-acc); }
 .sel option { background: var(--c-bg2); }
+input[type="time"].sel { cursor: text; color-scheme: dark; }
+input[type="text"].sel { cursor: text; }
+.setting-row.hidden { display: none; }
 
 /* Accent swatches + color wheel */
 .swatches-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex-shrink: 0; }
@@ -473,6 +491,43 @@ html.show-names .card-name { display: block; }
   border-bottom: 1px solid var(--c-border); background: var(--c-bg2);
 }
 
+/* Discovery Slideshow extras — status row reuses .slideshow-status & .ss-dot */
+.disc-ss-nokey-banner {
+  display: none; padding: 12px 16px; margin-bottom: 14px;
+  background: var(--c-bg1); border: 1px solid var(--c-border);
+  border-radius: var(--r); color: var(--c-txt3); font-size: 13px;
+}
+.disc-ss-thumb {
+  width: 56px; height: 38px; object-fit: cover; border-radius: 5px;
+  border: 1px solid var(--c-border); display: none; flex-shrink: 0; margin-left: 4px;
+}
+.disc-ss-thumb.visible { display: block; }
+.disc-ss-info { min-width: 0; }
+.disc-ss-credit { font-size: 11px; color: var(--c-txt3); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.disc-ss-credit a { color: var(--c-acc); text-decoration: none; }
+.disc-ss-credit a:hover { text-decoration: underline; }
+
+/* Topics */
+.disc-ss-topics-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 22px; }
+.disc-ss-topic-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--c-bg3); border: 1px solid var(--c-border);
+  border-radius: 20px; padding: 3px 10px; font-size: 12px; color: var(--c-txt2);
+}
+.disc-ss-topic-tag .tag-rm {
+  background: none; border: none; padding: 0 0 0 4px; font-size: 11px;
+  color: var(--c-txt3); cursor: pointer; line-height: 1;
+}
+.disc-ss-topic-tag .tag-rm:hover { color: var(--c-red); }
+.disc-ss-add-topic { display: flex; gap: 6px; margin-top: 4px; }
+.disc-ss-add-topic input {
+  flex: 1; background: var(--c-bg2); border: 1px solid var(--c-border);
+  border-radius: var(--r-sm); padding: 7px 10px; color: var(--c-txt); font-size: 13px;
+  font-family: inherit;
+}
+.disc-ss-add-topic input:focus { outline: none; border-color: var(--c-acc); }
+
 /* ═══════════════════════════════════════════════════════════
    CONTEXT MENU
 ═══════════════════════════════════════════════════════════ */
@@ -497,7 +552,7 @@ html.show-names .card-name { display: block; }
 ═══════════════════════════════════════════════════════════ */
 .modal-back {
   display: none; position: fixed; inset: 0; z-index: 8000;
-  background: rgba(0,0,0,.7); backdrop-filter: blur(6px);
+  background: rgba(0,0,0,.82);
   align-items: center; justify-content: center;
 }
 .modal-back.on { display: flex; animation: fadeIn .18s ease; }
@@ -522,7 +577,7 @@ html.show-names .card-name { display: block; }
 ═══════════════════════════════════════════════════════════ */
 #lightbox {
   display: none; position: fixed; inset: 0; z-index: 10000;
-  background: rgba(0,0,0,.92); backdrop-filter: blur(12px);
+  background: rgba(0,0,0,.94);
   align-items: center; justify-content: center;
   flex-direction: column; gap: 12px;
 }
@@ -652,6 +707,10 @@ html.show-names .card-name { display: block; }
 
       <!-- VIEW: Gallery -->
       <div id="view-gallery" class="view">
+        <div id="gallery-toolbar">
+          <button id="btn-add-images-to-folder" class="btn-primary" style="font-size:12px;padding:6px 12px">+ Add Images</button>
+          <span id="gallery-folder-name" style="font-size:12px;color:var(--c-txt3)"></span>
+        </div>
         <div class="view-scroll">
           <div id="gallery"></div>
         </div>
@@ -663,9 +722,9 @@ html.show-names .card-name { display: block; }
           <div id="disc-setup">
             <div class="ds-icon">&#127758;</div>
             <h2>Discover Wallpapers</h2>
-            <p>The Discover feature requires an Unsplash API key configured by the developer.<br/>Contact the app distributor for a build with Discover enabled.</p>
+            <p>The Discover feature requires an Unsplash or Pexels API key configured by the developer.<br/>Contact the app distributor for a build with Discover enabled.</p>
             <div class="disc-no-key">
-              <strong>For developers:</strong> Set the <code>UNSPLASH_ACCESS_KEY</code> environment variable before building to embed your key.
+              <strong>For developers:</strong> Set <code>UNSPLASH_ACCESS_KEY</code> and/or <code>PEXELS_API_KEY</code> environment variables before building to embed your keys.
             </div>
           </div>
           <div id="disc-main">
@@ -673,6 +732,11 @@ html.show-names .card-name { display: block; }
               <div class="disc-search">
                 <input id="disc-search-in" type="text" placeholder="Search wallpapers..."/>
                 <button id="disc-search-btn">Search</button>
+              </div>
+              <div id="disc-source-tabs" style="display:none">
+                <button class="chip active" data-src="all">All</button>
+                <button class="chip" data-src="unsplash">Unsplash</button>
+                <button class="chip" data-src="pexels">Pexels</button>
               </div>
             </div>
             <div id="disc-chips"></div>
@@ -687,24 +751,9 @@ html.show-names .card-name { display: block; }
         <div class="view-scroll">
           <div class="settings-wrap">
             <div class="settings-heading">Settings</div>
-            <div class="settings-sub">Wallpaper Studio v0.3.6</div>
+            <div class="settings-sub">Wallpaper Studio v0.3.7 — Unsplash + Pexels</div>
 
-            <div class="settings-section">
-              <div class="settings-section-title">Performance</div>
-              <div class="setting-row">
-                <div class="setting-info">
-                  <div class="setting-label">Hardware Acceleration</div>
-                  <div class="setting-desc">Uses GPU for faster rendering. Disabled by default due to known instability on some systems. Restart required to apply.</div>
-                </div>
-                <div class="setting-ctrl">
-                  <label class="tog">
-                    <input type="checkbox" id="chk-hw"/>
-                    <span class="tog-track"></span><span class="tog-thumb"></span>
-                  </label>
-                </div>
-              </div>
-              <div class="setting-notice" id="hw-notice">A restart is required for this change to take effect.</div>
-            </div>
+
 
             <div class="settings-section">
               <div class="settings-section-title">Appearance</div>
@@ -781,11 +830,95 @@ html.show-names .card-name { display: block; }
             </div>
 
             <div class="settings-section">
+              <div class="settings-section-title">Startup &amp; Background</div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Start with Windows</div>
+                  <div class="setting-desc">Launch Wallpaper Studio automatically when Windows starts.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <label class="tog">
+                    <input type="checkbox" id="chk-start-windows"/>
+                    <span class="tog-track"></span><span class="tog-thumb"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Start Minimized to Tray</div>
+                  <div class="setting-desc">When starting with Windows, launch hidden in the system tray instead of showing the window.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <label class="tog">
+                    <input type="checkbox" id="chk-start-minimized"/>
+                    <span class="tog-track"></span><span class="tog-thumb"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <div class="settings-section-title">Daily Wallpaper</div>
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Enable Daily Wallpaper</div>
+                  <div class="setting-desc">Automatically set a new random wallpaper from Unsplash every day at a scheduled time.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <label class="tog">
+                    <input type="checkbox" id="chk-daily-wallpaper"/>
+                    <span class="tog-track"></span><span class="tog-thumb"></span>
+                  </label>
+                </div>
+              </div>
+              <div class="setting-row" id="row-daily-time">
+                <div class="setting-info">
+                  <div class="setting-label">Change Time</div>
+                  <div class="setting-desc">The wallpaper will change every day at this time.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <input type="time" id="inp-daily-time" class="sel" value="08:00"/>
+                </div>
+              </div>
+              <div class="setting-row" id="row-daily-source">
+                <div class="setting-info">
+                  <div class="setting-label">Photo Source</div>
+                  <div class="setting-desc">Which service to pull the daily wallpaper from. "Both" picks randomly between Unsplash and Pexels each day.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <select id="sel-daily-source" class="sel">
+                    <option value="all">Both (random each day)</option>
+                    <option value="unsplash">Unsplash only</option>
+                    <option value="pexels">Pexels only</option>
+                  </select>
+                </div>
+              </div>
+              <div class="setting-row" id="row-daily-topics">
+                <div class="setting-info">
+                  <div class="setting-label">Topics (optional)</div>
+                  <div class="setting-desc">Filter by topic (comma-separated). Leave empty for fully random wallpapers from any category.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <input type="text" id="inp-daily-topics" class="sel" placeholder="e.g. nature, city, abstract" style="min-width:180px"/>
+                </div>
+              </div>
+              <div class="setting-row" id="row-daily-test">
+                <div class="setting-info">
+                  <div class="setting-label">Test Now</div>
+                  <div class="setting-desc">Trigger the daily wallpaper change right now to preview it.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <button id="btn-daily-test" class="btn-ghost">Change Now</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-section">
               <div class="settings-section-title">About</div>
               <div class="setting-row">
                 <div class="setting-info">
                   <div class="setting-label">Wallpaper Studio</div>
-                  <div class="setting-desc">Version 0.3.6 &nbsp;·&nbsp; Windows 10 / 11 &nbsp;·&nbsp; Unsplash API compliant</div>
+                  <div class="setting-desc">Version 0.3.7 &nbsp;·&nbsp; Windows 10 / 11 &nbsp;·&nbsp; Unsplash API compliant</div>
                 </div>
               </div>
             </div>
@@ -802,8 +935,12 @@ html.show-names .card-name { display: block; }
       <div id="view-slideshow" class="view">
         <div class="view-scroll">
           <div class="slideshow-wrap">
+
+            <!-- ══════════════════════════════════════════════════
+                 LOCAL SLIDESHOW
+            ══════════════════════════════════════════════════ -->
             <div class="slideshow-heading">Slideshow</div>
-            <div class="slideshow-sub">Auto-rotate wallpapers on a configurable schedule.</div>
+            <div class="slideshow-sub">Auto-rotate your saved wallpapers on a configurable schedule.</div>
 
             <div class="slideshow-status">
               <div id="ss-dot" class="ss-dot"></div>
@@ -816,10 +953,11 @@ html.show-names .card-name { display: block; }
 
             <div class="slideshow-section">
               <div class="slideshow-section-title">Configuration</div>
+
               <div class="setting-row">
                 <div class="setting-info">
                   <div class="setting-label">Change Interval</div>
-                  <div class="setting-desc">How long each wallpaper stays before switching. Changes apply on next Start.</div>
+                  <div class="setting-desc">How long each wallpaper stays before switching. Takes effect on next Start.</div>
                 </div>
                 <div class="setting-ctrl">
                   <select id="ss-sel-interval" class="sel">
@@ -833,10 +971,11 @@ html.show-names .card-name { display: block; }
                   </select>
                 </div>
               </div>
+
               <div class="setting-row">
                 <div class="setting-info">
                   <div class="setting-label">Source</div>
-                  <div class="setting-desc">Choose which folder to cycle through, or select All Albums to include everything.</div>
+                  <div class="setting-desc">Which folder to cycle through, or All Albums to include everything.</div>
                 </div>
                 <div class="setting-ctrl">
                   <select id="ss-source-sel" class="sel">
@@ -844,10 +983,116 @@ html.show-names .card-name { display: block; }
                   </select>
                 </div>
               </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Shuffle</div>
+                  <div class="setting-desc">Play in random order instead of sequentially.</div>
+                </div>
+                <div class="setting-ctrl">
+                  <label class="tog">
+                    <input type="checkbox" id="chk-ss-shuffle"/>
+                    <span class="tog-track"></span><span class="tog-thumb"></span>
+                  </label>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
+
+            <!-- ══════════════════════════════════════════════════
+                 DISCOVERY SLIDESHOW
+            ══════════════════════════════════════════════════ -->
+            <div class="slideshow-heading" style="margin-top:32px">Discovery Slideshow</div>
+            <div class="slideshow-sub">Stream live wallpapers from Unsplash — each image downloads just before it's shown. Slow connections are handled gracefully; the current wallpaper stays until the next one is ready.</div>
+
+            <div id="disc-ss-no-key" class="disc-ss-nokey-banner">
+              &#9888;&nbsp; Discovery Slideshow requires an Unsplash or Pexels API key. Contact the app developer.
+            </div>
+
+            <div id="disc-ss-ui">
+              <!-- Status row — same structure & height as local slideshow -->
+              <div class="slideshow-status">
+                <div id="disc-ss-dot" class="ss-dot"></div>
+                <div class="disc-ss-info" style="flex:1;min-width:0">
+                  <div id="disc-ss-status-text" class="ss-status-text">Discovery Slideshow is stopped</div>
+                  <div id="disc-ss-credit" class="disc-ss-credit"></div>
+                </div>
+                <img id="disc-ss-thumb" class="disc-ss-thumb" src="" alt=""/>
+                <div class="ss-ctrl-btns">
+                  <button id="btn-disc-ss-fav"   class="btn-ghost"   style="display:none" title="Save &amp; favourite this photo">&#9733;</button>
+                  <button id="btn-disc-ss-next"  class="btn-ghost"   style="display:none" title="Skip to next photo">&#8594;</button>
+                  <button id="btn-disc-ss-start" class="btn-primary">&#9654; Start</button>
+                  <button id="btn-disc-ss-stop"  class="btn-danger"  style="display:none">&#9646;&#9646; Stop</button>
+                </div>
+              </div>
+
+              <div class="slideshow-section">
+                <div class="slideshow-section-title">Configuration</div>
+
+                <div class="setting-row" id="row-disc-ss-source">
+                  <div class="setting-info">
+                    <div class="setting-label">Photo Source</div>
+                    <div class="setting-desc">Which service to pull photos from. "Both" interleaves Unsplash and Pexels results randomly.</div>
+                  </div>
+                  <div class="setting-ctrl">
+                    <select id="disc-ss-source" class="sel">
+                      <option value="all">Both (Unsplash + Pexels)</option>
+                      <option value="unsplash">Unsplash only</option>
+                      <option value="pexels">Pexels only</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <div class="setting-label">Change Interval</div>
+                    <div class="setting-desc">How long each wallpaper stays. If the download takes longer the current wallpaper is extended automatically.</div>
+                  </div>
+                  <div class="setting-ctrl">
+                    <select id="disc-ss-interval" class="sel">
+                      <option value="1800000">30 minutes</option>
+                      <option value="3600000" selected>1 hour</option>
+                      <option value="7200000">2 hours</option>
+                      <option value="14400000">4 hours</option>
+                      <option value="21600000">6 hours</option>
+                      <option value="43200000">12 hours</option>
+                      <option value="86400000">24 hours</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <div class="setting-label">Save Downloaded Photos To</div>
+                    <div class="setting-desc">Permanently save each downloaded photo to a folder. Leave empty to use a temp folder (photos are deleted when the slideshow stops).</div>
+                  </div>
+                  <div class="setting-ctrl">
+                    <select id="disc-ss-save-folder" class="sel">
+                      <option value="">Temp only (don't save)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:0">
+                  <div class="setting-info" style="padding-bottom:10px">
+                    <div class="setting-label">Topics / Search Words</div>
+                    <div class="setting-desc">Filter by topic. Leave empty for popular wallpapers. Multiple topics are cycled randomly each time.</div>
+                  </div>
+                  <div style="width:100%;padding:0 16px 14px">
+                    <div id="disc-ss-topics-wrap" class="disc-ss-topics-wrap"></div>
+                    <div class="disc-ss-add-topic">
+                      <input id="disc-ss-topic-in" type="text" placeholder="e.g. mountains, cyberpunk, ocean…"/>
+                      <button id="btn-disc-ss-add-topic" class="btn-ghost">Add</button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            <!-- /Discovery Slideshow -->
+
+          </div><!-- /slideshow-wrap -->
+        </div><!-- /view-scroll -->
+      </div><!-- /view-slideshow -->
 
       <!-- DETAILS PANEL (absolute, inside #content) -->
       <div id="det-panel">
@@ -875,7 +1120,10 @@ html.show-names .card-name { display: block; }
 
 <!-- CONTEXT MENU -->
 <div id="ctx-menu">
-  <button id="ctx-copy">Copy to folder</button>
+  <button id="ctx-set">Set as wallpaper</button>
+  <div class="ctx-sep"></div>
+  <button id="ctx-copy">Copy to folder&hellip;</button>
+  <button id="ctx-export">Export / Save As&hellip;</button>
   <div id="ctx-sep" class="ctx-sep"></div>
   <button id="ctx-unfav" style="display:none">Remove from favourites</button>
   <div class="ctx-sep"></div>

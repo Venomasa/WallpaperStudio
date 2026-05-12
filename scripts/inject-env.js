@@ -19,15 +19,17 @@
 const fs   = require('fs');
 const path = require('path');
 
-const key = process.env.UNSPLASH_ACCESS_KEY || '';
+const unsplashKey = process.env.UNSPLASH_ACCESS_KEY || '';
+const pexelsKey   = process.env.PEXELS_API_KEY      || '';
 
-if (!key) {
-  console.warn('[inject-env] WARNING: UNSPLASH_ACCESS_KEY is not set — Discover tab will be disabled in the built app.');
+if (!unsplashKey && !pexelsKey) {
+  console.warn('[inject-env] WARNING: Neither UNSPLASH_ACCESS_KEY nor PEXELS_API_KEY is set — Discover tab will be disabled in the built app.');
 } else {
-  console.log('[inject-env] UNSPLASH_ACCESS_KEY found — embedding in build-config.json');
+  if (unsplashKey) console.log('[inject-env] UNSPLASH_ACCESS_KEY found — embedding in build-config.json');
+  if (pexelsKey)   console.log('[inject-env] PEXELS_API_KEY found — embedding in build-config.json');
 }
 
-const config = { unsplashKey: key };
+const config = { unsplashKey, pexelsKey };
 const outPath = path.join(__dirname, '..', 'src', 'build-config.json');
 fs.writeFileSync(outPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
 console.log('[inject-env] Wrote', outPath);

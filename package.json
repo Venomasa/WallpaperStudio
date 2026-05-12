@@ -1,8 +1,8 @@
 {
   "name": "wallpaper-studio",
   "productName": "Wallpaper Studio",
-  "version": "0.3.6",
-  "description": "Modern desktop wallpaper manager for Windows — manage local collections and discover photos from Unsplash",
+  "version": "0.3.7",
+  "description": "Modern desktop wallpaper manager for Windows \u2014 manage local collections and discover photos from Unsplash",
   "author": "Venomasa",
   "main": "src/main.js",
   "scripts": {
@@ -34,11 +34,15 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
