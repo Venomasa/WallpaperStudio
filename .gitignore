@@ -2,3 +2,4 @@ node_modules/
 dist/
 # Generated at build time by scripts/inject-env.js — contains API key, never commit
 src/build-config.json
+run.ps1
